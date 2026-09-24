@@ -1,5 +1,5 @@
 {
-  "nodeModulesDir": "auto",
+  "nodeModulesDir": "manual",
   "minimumDependencyAge": 0,
   "imports": {}
 }

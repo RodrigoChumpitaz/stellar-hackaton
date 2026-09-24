@@ -1,17 +1,26 @@
 import { StrKey } from '@stellar/stellar-sdk';
 import { getAddress as getFreighterAddress, getNetwork, isConnected as isFreighterInstalled, requestAccess, signTransaction as freighterSignTransaction } from '@stellar/freighter-api';
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { fundNewAccount, readAccount } from './account.js';
 import { walletKit } from './kit.js';
+import { createPasskeyKit, type PasskeyConfig } from './passkeys.js';
 import { TESTNET } from '../stellar.js';
 
 const SESSION_KEY = 'stellar-runes.module-2.session';
-type SessionKind = 'kit' | 'freighter';
+type SessionKind = 'kit' | 'freighter' | 'passkey';
+
+export interface WalletProviderProps {
+  children: ReactNode;
+  /** Configuración pública del despliegue Smart Account Kit. Omítela para desactivar Passkeys. */
+  passkeyConfig?: PasskeyConfig;
+}
 
 export interface WalletState {
   isConnected: boolean;
   isConnecting: boolean;
   publicKey: string | null;
+  /** Dirección C... de una cuenta inteligente conectada con WebAuthn. */
+  smartAccountId: string | null;
   walletType: string | null;
   network: 'TESTNET';
   xlmBalance: number;
@@ -20,11 +29,15 @@ export interface WalletState {
   error: string | null;
   /** Indica si la extensión Freighter está disponible; la conexión sigue siendo multi-wallet. */
   isFreighterAvailable: boolean;
+  isPasskeyAvailable: boolean;
   connect: () => Promise<void>;
   connectFreighter: () => Promise<void>;
+  connectPasskey: () => Promise<void>;
   disconnect: () => void;
   fundWithFriendbot: () => Promise<boolean>;
   signTransaction: (xdr: string) => Promise<string>;
+  /** Firma, re-simula y envía una transacción Soroban de Smart Account Kit. */
+  signAndSubmitPasskeyTransaction: (transaction: Parameters<ReturnType<typeof createPasskeyKit>['signAndSubmit']>[0]) => ReturnType<ReturnType<typeof createPasskeyKit>['signAndSubmit']>;
 }
 
 const WalletContext = createContext<WalletState | null>(null);
@@ -36,8 +49,9 @@ function errorMessage(reason: unknown) {
     : text || 'No se pudo completar la operación de la billetera.';
 }
 
-export function WalletProvider({ children }: { children: ReactNode }) {
+export function WalletProvider({ children, passkeyConfig }: WalletProviderProps) {
   const [publicKey, setPublicKey] = useState<string | null>(null);
+  const [smartAccountId, setSmartAccountId] = useState<string | null>(null);
   const [xlmBalance, setXlmBalance] = useState(0);
   const [sequenceNumber, setSequenceNumber] = useState<string | null>(null);
   const [walletType, setWalletType] = useState<string | null>(null);
@@ -45,6 +59,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isFreighterAvailable, setFreighterAvailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const passkeyKitRef = useRef<ReturnType<typeof createPasskeyKit> | null>(null);
+
+  const getPasskeyKit = useCallback(() => {
+    if (!passkeyConfig) throw new Error('Passkeys requiere la configuración pública de Smart Account Kit.');
+    if (!passkeyKitRef.current) passkeyKitRef.current = createPasskeyKit(passkeyConfig);
+    return passkeyKitRef.current;
+  }, [passkeyConfig]);
 
   const refreshAccount = useCallback(async (address: string, allowFunding: boolean) => {
     const initial = await readAccount(address);
@@ -63,6 +84,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const network = await walletKit().getNetwork();
       if (network.networkPassphrase !== TESTNET.networkPassphrase) throw new Error('La billetera debe estar configurada en Stellar Testnet.');
       setPublicKey(address);
+      setSmartAccountId(null);
       setWalletType(selected.productName);
       localStorage.setItem(SESSION_KEY, 'kit');
       await refreshAccount(address, true);
@@ -81,15 +103,30 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const network = await getNetwork();
       if (network.error || network.networkPassphrase !== TESTNET.networkPassphrase) throw new Error('Freighter debe estar configurado en Stellar Testnet.');
       setPublicKey(granted.address); setWalletType('Freighter'); localStorage.setItem(SESSION_KEY, 'freighter');
+      setSmartAccountId(null);
       await refreshAccount(granted.address, true);
     } catch (reason) { setError(errorMessage(reason)); }
     finally { setIsConnecting(false); }
   }, [refreshAccount]);
 
+  const connectPasskey = useCallback(async () => {
+    setIsConnecting(true); setError(null);
+    try {
+      const result = await getPasskeyKit().connectWallet({ prompt: true });
+      if (!result) throw new Error('No se encontró una cuenta inteligente asociada a esta Passkey.');
+      setPublicKey(null); setSmartAccountId(result.contractId); setWalletType('Passkey');
+      setXlmBalance(0); setSequenceNumber(null); setIsFunded(false);
+      localStorage.setItem(SESSION_KEY, 'passkey');
+    } catch (reason) {
+      setError(errorMessage(reason));
+    } finally { setIsConnecting(false); }
+  }, [getPasskeyKit]);
+
   const disconnect = useCallback(() => {
     void walletKit().disconnect().catch(() => undefined);
+    void passkeyKitRef.current?.disconnect().catch(() => undefined);
     localStorage.removeItem(SESSION_KEY);
-    setPublicKey(null); setWalletType(null); setXlmBalance(0); setSequenceNumber(null); setIsFunded(false); setError(null);
+    setPublicKey(null); setSmartAccountId(null); setWalletType(null); setXlmBalance(0); setSequenceNumber(null); setIsFunded(false); setError(null);
   }, []);
 
   const fundWithFriendbot = useCallback(async () => {
@@ -99,6 +136,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [publicKey, refreshAccount]);
 
   const signTransaction = useCallback(async (xdr: string) => {
+    if (smartAccountId) throw new Error('Las cuentas Passkey usan signAndSubmitPasskeyTransaction para re-simular y firmar autorizaciones Soroban.');
     if (!publicKey) throw new Error('Conecta una billetera antes de firmar una transacción.');
     if (walletType === 'Freighter') {
       const signed = await freighterSignTransaction(xdr, { networkPassphrase: TESTNET.networkPassphrase });
@@ -110,7 +148,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       networkPassphrase: TESTNET.networkPassphrase,
     });
     return signedTxXdr;
-  }, [publicKey]);
+  }, [publicKey, smartAccountId, walletType]);
+
+  const signAndSubmitPasskeyTransaction = useCallback(async (transaction: Parameters<ReturnType<typeof createPasskeyKit>['signAndSubmit']>[0]) => {
+    if (!smartAccountId) throw new Error('Conecta una Passkey antes de firmar una transacción de cuenta inteligente.');
+    return getPasskeyKit().signAndSubmit(transaction);
+  }, [getPasskeyKit, smartAccountId]);
 
   useEffect(() => {
     void isFreighterInstalled().then(({ isConnected, error: freighterError }) => {
@@ -128,18 +171,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }).catch(() => localStorage.removeItem(SESSION_KEY));
       return;
     }
-    void walletKit().fetchAddress().then(async ({ address }) => {
+    if (sessionKind === 'passkey') {
+      if (!passkeyConfig) { localStorage.removeItem(SESSION_KEY); return; }
+      void getPasskeyKit().connectWallet().then((result) => {
+        if (!result) { localStorage.removeItem(SESSION_KEY); return; }
+        setPublicKey(null); setSmartAccountId(result.contractId); setWalletType('Passkey');
+      }).catch(() => localStorage.removeItem(SESSION_KEY));
+      return;
+    }
+    void walletKit().fetchAddress().then(async ({ address }: { address: string }) => {
       if (!StrKey.isValidEd25519PublicKey(address)) return;
       setPublicKey(address); setWalletType(walletKit().selectedModule.productName);
       await refreshAccount(address, false);
     }).catch(() => localStorage.removeItem(SESSION_KEY));
-  }, [refreshAccount]);
+  }, [getPasskeyKit, passkeyConfig, refreshAccount]);
 
   const value = useMemo<WalletState>(() => ({
-    isConnected: publicKey !== null, isConnecting, publicKey, walletType, network: 'TESTNET',
-    xlmBalance, sequenceNumber, isFunded, error, isFreighterAvailable, connect, connectFreighter, disconnect,
-    fundWithFriendbot, signTransaction,
-  }), [publicKey, isConnecting, walletType, xlmBalance, sequenceNumber, isFunded, error, isFreighterAvailable, connect, connectFreighter, disconnect, fundWithFriendbot, signTransaction]);
+    isConnected: publicKey !== null || smartAccountId !== null, isConnecting, publicKey, smartAccountId, walletType, network: 'TESTNET',
+    xlmBalance, sequenceNumber, isFunded, error, isFreighterAvailable, isPasskeyAvailable: Boolean(passkeyConfig), connect, connectFreighter, connectPasskey, disconnect,
+    fundWithFriendbot, signTransaction, signAndSubmitPasskeyTransaction,
+  }), [publicKey, smartAccountId, isConnecting, walletType, xlmBalance, sequenceNumber, isFunded, error, isFreighterAvailable, passkeyConfig, connect, connectFreighter, connectPasskey, disconnect, fundWithFriendbot, signTransaction, signAndSubmitPasskeyTransaction]);
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
 }

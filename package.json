@@ -1,22 +1,39 @@
 {
-  "name": "stellar-runes-modulo-2",
+  "name": "stellar-runes",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Módulo 2: autenticación multi-wallet y conectividad Stellar Testnet.",
+  "description": "Stellar Runes: catálogo, wallet Web3, Supabase y forja Soroban.",
   "scripts": {
-    "build": "node node_modules\\deno\\bin.cjs check --sloppy-imports src/index.ts",
-    "typecheck": "node node_modules\\deno\\bin.cjs check --sloppy-imports src/index.ts"
+    "dev": "next dev",
+    "build": "npm run wallet:typecheck && next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "wallet:typecheck": "node node_modules\\deno\\bin.cjs check --sloppy-imports src/index.ts",
+    "typecheck": "npm run wallet:typecheck"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.1",
     "@stellar/freighter-api": "^6.0.1",
     "@stellar/stellar-sdk": "^17.1.0",
+    "next": "^16.3.6",
     "react": "^19.3.0",
-    "smart-account-kit": "^0.8.0"
+    "react-dom": "^19.3.0",
+    "server-only": "^0.0.1",
+    "smart-account-kit": "^0.8.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^24.10.1",
     "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "deno": "^2.6.1",
-    "typescript": "^5.9.3"
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.3.6",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

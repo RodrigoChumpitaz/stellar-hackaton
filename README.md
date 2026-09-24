@@ -16,17 +16,20 @@ El kit v2 se distribuye prioritariamente en JSR. Esta carpeta usa su distribuci�
 ## Uso
 
 ```tsx
-import { WalletButton, WalletProvider, useWallet } from 'stellar-runes-modulo-2';
+import { WalletButton, WalletProvider, type PasskeyConfig } from 'stellar-runes-modulo-2';
+
+const passkeyConfig: PasskeyConfig = {
+  accountWasmHash: process.env.VITE_PASSKEY_ACCOUNT_WASM_HASH!,
+  webauthnVerifierAddress: process.env.VITE_PASSKEY_WEBAUTHN_VERIFIER_ADDRESS!,
+  allowedOrigins: process.env.VITE_PASSKEY_ALLOWED_ORIGINS!.split(','),
+};
 
 function App() {
-  return <WalletProvider><WalletButton /></WalletProvider>;
+  return <WalletProvider passkeyConfig={passkeyConfig}><WalletButton /></WalletProvider>;
 }
-
-// En pantallas que necesitan firmar XDR:
-const { publicKey, isConnected, signTransaction } = useWallet();
 ```
 
-`signTransaction` delega en la billetera seleccionada. Para priorizar Freighter, `useWallet()` también expone `connectFreighter()`: comprueba instalación, solicita acceso y exige Testnet antes de aceptar la sesión. El módulo no envía transacciones ni guarda claves privadas.
+`signTransaction` delega en billeteras clásicas `G...`. Para Passkeys `C...`, `useWallet()` expone `signAndSubmitPasskeyTransaction()`, que aplica el ciclo obligatorio de firma WebAuthn, re-simulación y envío. `connectFreighter()` conserva el flujo directo de Freighter. El módulo no envía claves privadas ni semillas.
 
 ## Límites explícitos
 
