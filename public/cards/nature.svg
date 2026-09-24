@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 420" role="img" aria-label="NATURE">
+  <defs><radialGradient id="g" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#5fd068"/><stop offset="1" stop-color="#0f3d14"/></radialGradient></defs>
+  <rect width="300" height="420" rx="18" fill="url(#g)"/>
+  <circle cx="150" cy="170" r="70" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="4"/>
+  <text x="150" y="360" text-anchor="middle" font-family="sans-serif" font-size="28" font-weight="700" fill="#fff">NATURE</text>
+</svg>
