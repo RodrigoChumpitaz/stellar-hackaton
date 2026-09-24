@@ -1,40 +1,37 @@
-# Stellar Runes (Aether TCG)
+# Módulo 2 — Autenticación & Conectividad Web3
 
-Forja generativa de cartas en Stellar: dos cartas se queman y nace una híbrida (Gemini + firma
-Ed25519 del oráculo + contrato Soroban atómico). Stellar Odyssey Hackathon Perú 2026.
+Paquete aislado para Stellar Runes. Conecta Freighter y las billeteras compatibles con Stellar Wallets Kit, fuerza Stellar Testnet, valida la clave `G...`, consulta la cuenta, fondea cuentas nuevas con Friendbot y expone `useWallet()`.
 
-Stack: Next.js 16 · TypeScript · Supabase · Zod · Stellar Wallets Kit · Soroban (Rust) · Vercel.
+## Instalación
 
-## Setup
+Requiere Node.js 22 o superior.
 
 ```bash
 npm install
-cp .env.example .env.local   # completar llaves
+npm run typecheck
 ```
 
-### Base de datos (Módulo 1)
-1. Aplicar el esquema en Supabase, con una de estas opciones:
-   - **SQL Editor:** pegar `supabase/migrations/20260924000000_init_schema.sql` y ejecutar.
-   - **CLI:** `npx supabase login && npx supabase link --project-ref <ref> && npx supabase db push`
-2. Sembrar el catálogo base: `npm run db:seed`
-3. (Tras cambiar el esquema) regenerar tipos: `SUPABASE_PROJECT_ID=<ref> npm run db:types`
+El kit v2 se distribuye prioritariamente en JSR. Esta carpeta usa su distribución npm compatible (`@creit.tech/stellar-wallets-kit`) para que las subrutas de módulos compilen de forma estable con npm/TypeScript en Windows; ambas exponen la misma API v2 usada aquí.
 
-## Scripts
-| Script | Qué hace |
-|---|---|
-| `npm run dev` | Servidor de desarrollo |
-| `npm test` | Tests (reglas de forja, schemas) |
-| `npm run typecheck` | Verificación de tipos |
-| `npm run db:seed` | Upsert de las 4 cartas base en `cards_catalog` |
-| `npm run db:types` | Genera `src/types/database.types.ts` desde Supabase |
+## Uso
 
-## Estructura
+```tsx
+import { WalletButton, WalletProvider, type PasskeyConfig } from 'stellar-runes-modulo-2';
+
+const passkeyConfig: PasskeyConfig = {
+  accountWasmHash: process.env.VITE_PASSKEY_ACCOUNT_WASM_HASH!,
+  webauthnVerifierAddress: process.env.VITE_PASSKEY_WEBAUTHN_VERIFIER_ADDRESS!,
+  allowedOrigins: process.env.VITE_PASSKEY_ALLOWED_ORIGINS!.split(','),
+};
+
+function App() {
+  return <WalletProvider passkeyConfig={passkeyConfig}><WalletButton /></WalletProvider>;
+}
 ```
-supabase/migrations/     Esquema SQL (enums, tablas, RLS)
-src/lib/cards/           Dominio: constantes, reglas de forja, schemas Zod, catálogo, queries
-src/lib/supabase.ts      Cliente público (solo lectura)
-src/lib/supabase-admin.ts  Cliente servidor (secret key)
-src/types/               Tipos generados de la DB
-public/cards/            Arte por elemento (placeholders)
-.claude/skills/          Convenciones: `data` y `standards` (enlazado en .agents/skills)
-```
+
+`signTransaction` delega en billeteras clásicas `G...`. Para Passkeys `C...`, `useWallet()` expone `signAndSubmitPasskeyTransaction()`, que aplica el ciclo obligatorio de firma WebAuthn, re-simulación y envío. `connectFreighter()` conserva el flujo directo de Freighter. El módulo no envía claves privadas ni semillas.
+
+## Límites explícitos
+
+- La red está fijada a `TESTNET`; Friendbot no se invoca fuera de ella.
+- Passkeys se habilitan con `createPasskeyKit({ accountWasmHash, webauthnVerifierAddress, allowedOrigins })`. Smart Account Kit usa cuentas contrato `C...`; no se mezclan engañosamente con la identidad clásica `G...` requerida por el flujo de Friendbot.
