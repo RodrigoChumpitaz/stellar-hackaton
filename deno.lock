@@ -484,6 +484,7 @@
         "npm:server-only@^0.0.1",
         "npm:smart-account-kit@0.8",
         "npm:tailwindcss@^4.3.3",
+        "npm:tsx@^4.23.15",
         "npm:typescript@^5.9.3",
         "npm:vitest@^4.0.18",
         "npm:zod@^4.6.5"
