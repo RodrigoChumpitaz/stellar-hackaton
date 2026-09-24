@@ -46,3 +46,7 @@ passkeys.local.ts
 
 # supabase cli
 supabase/.temp/
+
+# Others
+/*.md
+!README.md
