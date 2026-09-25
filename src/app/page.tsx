@@ -1,6 +1,8 @@
-import { getCatalog } from "@/lib/cards/queries";
-import { ForgeContainer } from "@/components/forge/ForgeContainer";
-import type { CardData } from "@/components/cards/CardItem";
+import { Suspense } from "react";
+import { getCatalog } from "@/modules/cards/infrastructure/card-repository";
+import { ForgeContainer } from "@/modules/forge/ui/ForgeContainer";
+import { ForgeSkeleton } from "@/modules/forge/ui/ForgeSkeleton";
+import type { CardData } from "@/modules/cards/domain/types";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,7 @@ const FALLBACK_CATALOG: CardData[] = [
     name: "Pyro Wyrm",
     element: "FIRE",
     rarity: "COMMON",
-    atk: 5,
+    atk: 4,
     def: 3,
     image_url: "/cards/ignis-sprite.png",
     description: "Sierpe ígnea nacida en magma primigenio. Furia destructiva concentrada.",
@@ -41,7 +43,7 @@ const FALLBACK_CATALOG: CardData[] = [
     element: "WATER",
     rarity: "COMMON",
     atk: 3,
-    def: 6,
+    def: 4,
     image_url: "/cards/aqua-nymph.png",
     description: "Canto hipnótico que congela las mareas y calma el fragor bélico.",
   },
@@ -61,7 +63,7 @@ const FALLBACK_CATALOG: CardData[] = [
     element: "EARTH",
     rarity: "COMMON",
     atk: 2,
-    def: 7,
+    def: 5,
     image_url: "/cards/earth.svg",
     description: "Núcleo tectónico inquebrantable que resiste embestidas colosales.",
   },
@@ -80,14 +82,14 @@ const FALLBACK_CATALOG: CardData[] = [
     name: "Vortex Falcon",
     element: "AIR",
     rarity: "COMMON",
-    atk: 6,
+    atk: 5,
     def: 2,
     image_url: "/cards/air.svg",
     description: "Cazador de tempestades aéreas con garras cargadas de estática pura.",
   },
 ];
 
-export default async function Home() {
+async function ForgeLoader() {
   let catalogCards: CardData[] = FALLBACK_CATALOG;
 
   try {
@@ -109,4 +111,12 @@ export default async function Home() {
   }
 
   return <ForgeContainer initialCatalog={catalogCards} />;
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<ForgeSkeleton />}>
+      <ForgeLoader />
+    </Suspense>
+  );
 }

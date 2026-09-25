@@ -3,7 +3,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../src/types/database.types";
-import { BASE_CATALOG } from "../src/lib/cards/catalog";
+import { BASE_CATALOG } from "../src/modules/cards/domain/catalog";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SECRET_KEY;

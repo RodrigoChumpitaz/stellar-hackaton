@@ -5,7 +5,12 @@
  * sin sustituir ni ocultar la dependencia oficial de JSR.
  */
 declare module "jsr:@creit-tech/stellar-wallets-kit@^2.7.0" {
-  export const StellarWalletsKit: any;
+  export const StellarWalletsKit: new (options: unknown) => {
+    setNetwork: (network: unknown) => void;
+    openModal: (options: unknown) => Promise<unknown>;
+    getAddress: () => Promise<{ address: string }>;
+    disconnect: () => Promise<void>;
+  };
   export const Networks: { TESTNET: string };
 }
 

@@ -1,0 +1,53 @@
+import { getSupabase } from "@/shared/infrastructure/supabase";
+import type { Tables } from "@/types/database.types";
+import { StellarAddressSchema } from "../domain/schemas";
+
+export type CatalogCard = Tables<"cards_catalog">;
+export type UserCard = Tables<"user_cards">;
+export type ForgeRecord = Tables<"forge_history">;
+
+export async function getCatalog(): Promise<CatalogCard[]> {
+  const { data, error } = await getSupabase().from("cards_catalog").select("*").order("id");
+  if (error) throw new Error(`No se pudo leer el catálogo: ${error.message}`);
+  return data;
+}
+
+/** Inventario vivo (no quemado) de un jugador, más recientes primero. */
+export async function getUserCards(playerAddress: string): Promise<UserCard[]> {
+  const address = StellarAddressSchema.parse(playerAddress);
+  const { data, error } = await getSupabase()
+    .from("user_cards")
+    .select("*")
+    .eq("player_address", address)
+    .eq("is_burned", false)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`No se pudo leer el inventario: ${error.message}`);
+  return data;
+}
+
+export async function hasClaimedStarterDeck(playerAddress: string): Promise<boolean> {
+  const address = StellarAddressSchema.parse(playerAddress);
+  const { count, error } = await getSupabase()
+    .from("user_cards")
+    .select("*", { count: "exact", head: true })
+    .eq("player_address", address);
+  if (error) {
+    console.warn("Error al verificar reclamo de mazo inicial:", error.message);
+    return false;
+  }
+  return (count ?? 0) > 0;
+}
+
+export async function getForgeHistory(playerAddress: string, limit = 20): Promise<ForgeRecord[]> {
+  const address = StellarAddressSchema.parse(playerAddress);
+  const { data, error } = await getSupabase()
+    .from("forge_history")
+    .select("*")
+    .eq("player_address", address)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`No se pudo leer el historial de forjas: ${error.message}`);
+  return data;
+}
+
+
