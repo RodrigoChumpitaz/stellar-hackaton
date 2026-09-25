@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { StellarAddressSchema, GeneratedStatsSchema } from "@/lib/cards/schemas";
-import { forgeElement, forgeRarity } from "@/lib/cards/forge-rules";
-import { STAT_BUDGET } from "@/lib/cards/constants";
-import { generateFusionText, generateFallbackFusionText } from "./gemini-client";
-import { buildCanonicalPayloadHash, signPayload, Networks } from "./oracle-crypto";
+import { getSupabaseAdmin } from "@/shared/infrastructure/supabase-admin";
+import { StellarAddressSchema } from "@/modules/cards/domain/schemas";
+import { GeneratedStatsSchema } from "@/modules/forge/domain/schemas";
+import { forgeElement, forgeRarity } from "@/modules/forge/domain/forge-rules";
+import { STAT_BUDGET } from "@/modules/cards/domain/constants";
+import { generateFusionText, generateFallbackFusionText } from "@/modules/forge/infrastructure/gemini-client";
+import { buildCanonicalPayloadHash, signPayload, Networks } from "@/modules/forge/infrastructure/oracle-crypto";
 
 export const runtime = "nodejs"; // necesitamos node:crypto, no Edge
 
-// ⚠️ AJUSTA cuando el Módulo 5 despliegue el contrato:
-const CONTRACT_ADDRESS = process.env.SOROBAN_CONTRACT_ADDRESS!;
 const NETWORK_PASSPHRASE = Networks.TESTNET;
 const FORGE_EXPIRATION_MINUTES = 5;
 
@@ -22,6 +21,13 @@ const ForgeRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const contractAddress = process.env.SOROBAN_CONTRACT_ADDRESS;
+    if (!contractAddress) {
+      return NextResponse.json(
+        { success: false, error: "SOROBAN_CONTRACT_ADDRESS no está configurada en el servidor." },
+        { status: 500 }
+      );
+    }
     // 1. Validar input (reusa StellarAddressSchema del proyecto)
     const body = await req.json();
     const parsed = ForgeRequestSchema.safeParse(body);
@@ -128,7 +134,7 @@ export async function POST(req: NextRequest) {
 
       const payloadHash = buildCanonicalPayloadHash({
         networkPassphrase: NETWORK_PASSPHRASE,
-        contractAddress: CONTRACT_ADDRESS,
+        contractAddress,
         playerAddress,
         cardA_id: cardA.token_id,
         cardB_id: cardB.token_id,

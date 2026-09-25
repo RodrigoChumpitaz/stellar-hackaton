@@ -1,6 +1,8 @@
-import { getCatalog } from "@/lib/cards/queries";
-import { ForgeContainer } from "@/components/forge/ForgeContainer";
-import type { CardData } from "@/components/cards/CardItem";
+import { Suspense } from "react";
+import { getCatalog } from "@/modules/cards/infrastructure/card-repository";
+import { ForgeContainer } from "@/modules/forge/ui/ForgeContainer";
+import { ForgeSkeleton } from "@/modules/forge/ui/ForgeSkeleton";
+import type { CardData } from "@/modules/cards/domain/types";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +89,7 @@ const FALLBACK_CATALOG: CardData[] = [
   },
 ];
 
-export default async function Home() {
+async function ForgeLoader() {
   let catalogCards: CardData[] = FALLBACK_CATALOG;
 
   try {
@@ -109,4 +111,12 @@ export default async function Home() {
   }
 
   return <ForgeContainer initialCatalog={catalogCards} />;
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<ForgeSkeleton />}>
+      <ForgeLoader />
+    </Suspense>
+  );
 }

@@ -1,0 +1,187 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { TopNav } from "@/shared/ui/navbar/TopNav";
+import { ForgeTable } from "./ForgeTable";
+import { InventoryDrawer } from "./InventoryDrawer";
+import { useWallet } from "@/modules/wallet";
+import { CardItem } from "@/modules/cards/ui/CardItem";
+import { BASE_ELEMENTS } from "@/modules/cards/domain/constants";
+import { forgeElement } from "../domain/forge-rules";
+import type { Card } from "@/modules/cards/domain/types";
+import { useForgeWorkbench } from "./hooks/useForgeWorkbench";
+
+const RevealModal = dynamic(
+  () => import("./RevealModal").then((m) => m.RevealModal),
+  { ssr: false }
+);
+
+const CardInspectModal = dynamic(
+  () => import("@/modules/cards/ui/CardInspectModal").then((m) => m.CardInspectModal),
+  { ssr: false }
+);
+
+const CardDetailsModal = dynamic(
+  () => import("@/modules/cards/ui/CardDetailsModal").then((m) => m.CardDetailsModal),
+  { ssr: false }
+);
+
+interface ForgeContainerProps {
+  initialCatalog: Card[];
+}
+
+export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
+  const wallet = useWallet();
+
+  const {
+    activeTab,
+    setActiveTab,
+    slotA,
+    slotB,
+    userDeck,
+    isForging,
+    forgeMessage,
+    forgedResult,
+    lastBurnedA,
+    lastBurnedB,
+    revealModalOpen,
+    inspectingCard,
+    detailsCard,
+    equipCardToSlot,
+    removeCardFromSlot,
+    startForge,
+    closeRevealModal,
+    setInspectingCard,
+    closeInspectingCard,
+    setDetailsCard,
+    closeDetailsCard,
+  } = useForgeWorkbench({
+    initialCatalog,
+    walletAddress: wallet.publicKey,
+    isConnected: wallet.isConnected,
+  });
+
+  return (
+    <div className="min-h-screen w-full bg-[#0A0C18] flex flex-col">
+      {/* Top Navigation */}
+      <TopNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Main Content Area */}
+      <main className="mx-auto w-full max-w-7xl px-3 sm:px-6 pt-4 sm:pt-8 pb-24 md:pb-8 flex-1 flex flex-col gap-6 sm:gap-8">
+        {/* TAB 1: THE FORGE CHAMBER */}
+        {activeTab === "forge" && (
+          <>
+            <ForgeTable
+              cardA={slotA}
+              cardB={slotB}
+              onRemoveA={() => removeCardFromSlot("A")}
+              onRemoveB={() => removeCardFromSlot("B")}
+              onStartForge={startForge}
+              isForging={isForging}
+              forgeStepMessage={forgeMessage}
+            />
+
+            <InventoryDrawer
+              cards={userDeck}
+              selectedA={slotA}
+              selectedB={slotB}
+              onQuickTap={(card) => setInspectingCard(card)}
+              onLongPress={(card) => setDetailsCard(card)}
+              onDragEndToSlot={equipCardToSlot}
+              isConnected={wallet.isConnected}
+            />
+          </>
+        )}
+
+        {/* TAB 2: CATALOG VIEW */}
+        {activeTab === "catalog" && (
+          <section className="rounded-3xl border border-zinc-800 bg-[#0E1122]/80 p-6 sm:p-8 backdrop-blur-xl">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-white tracking-tight">
+                Catálogo Canónico de Cartas
+              </h2>
+              <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+                Cartas base registradas en Supabase listas para forjar. Toca para pantalla completa o mantén presionado para detalles.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {initialCatalog.map((card) => (
+                <div key={card.id.toString()} className="flex justify-center">
+                  <CardItem
+                    card={card}
+                    size="sm"
+                    onQuickTap={(c) => setInspectingCard(c)}
+                    onLongPress={(c) => setDetailsCard(c)}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* TAB 3: DETERMINISTIC FORGE RULES MATRIX */}
+        {activeTab === "rules" && (
+          <section className="rounded-3xl border border-zinc-800 bg-[#0E1122]/80 p-6 sm:p-8 backdrop-blur-xl">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-white tracking-tight">
+                Matriz Determinista de Fusión (Soroban Core)
+              </h2>
+              <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+                Reglas matemáticas on-chain del Módulo 1 probadas con cobertura total.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto rounded-2xl border border-zinc-800 bg-black/40">
+              <table className="w-full text-left text-xs sm:text-sm text-zinc-300">
+                <thead className="bg-zinc-900/80 text-[11px] uppercase tracking-wider text-zinc-400">
+                  <tr>
+                    <th className="p-3">Elemento A \ B</th>
+                    {BASE_ELEMENTS.map((b) => (
+                      <th key={b} className="p-3">
+                        {b}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800 font-mono">
+                  {BASE_ELEMENTS.map((a) => (
+                    <tr key={a} className="hover:bg-zinc-900/40">
+                      <td className="p-3 font-bold text-cyan-400">{a}</td>
+                      {BASE_ELEMENTS.map((b) => (
+                        <td key={b} className="p-3 font-semibold">
+                          {forgeElement(a, b)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </main>
+
+      {/* Reveal Modal (After Forging) */}
+      <RevealModal
+        isOpen={revealModalOpen}
+        resultCard={forgedResult}
+        parentA={lastBurnedA}
+        parentB={lastBurnedB}
+        txHash="9a4f8e... (Soroban Testnet)"
+        onClose={closeRevealModal}
+      />
+
+      {/* Card Fullscreen Inspection Modal (Quick Tap) */}
+      <CardInspectModal
+        card={inspectingCard}
+        onClose={closeInspectingCard}
+      />
+
+      {/* Card Technical Details Modal (Long-Press 0.5s) */}
+      <CardDetailsModal
+        card={detailsCard}
+        onClose={closeDetailsCard}
+      />
+    </div>
+  );
+}
