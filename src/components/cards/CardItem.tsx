@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useCallback } from "react";
+import { motion, type PanInfo } from "framer-motion";
 import type { CardElement, CardRarity } from "@/lib/cards/constants";
 import {
   FireIcon,
@@ -139,16 +141,22 @@ function resolveArtwork(card: CardData): string {
   const el = card.element?.toUpperCase();
   if (el === "FIRE") return "/cards/ignis-sprite.png";
   if (el === "WATER") return "/cards/aqua-nymph.png";
-  if (el === "STEAM" || el === "VAPOR" || el === "AETHER") return "/cards/primordial-vapor.png";
-  return `/cards/${card.element.toLowerCase()}.svg`;
+  if (el === "EARTH") return "/cards/earth.svg";
+  if (el === "AIR") return "/cards/air.svg";
+  if (el === "STEAM" || el === "VAPOR") return "/cards/primordial-vapor.png";
+  return card.image_url || "/cards/aether.svg";
 }
 
-interface CardItemProps {
+export interface CardItemProps {
   card: CardData;
   onClick?: () => void;
   selectedSlot?: "A" | "B" | null;
   disabled?: boolean;
   size?: "sm" | "md" | "lg";
+  draggable?: boolean;
+  onQuickTap?: (card: CardData) => void;
+  onLongPress?: (card: CardData) => void;
+  onDragEndToSlot?: (card: CardData, targetSlot: "A" | "B") => void;
 }
 
 export function CardItem({
@@ -157,6 +165,10 @@ export function CardItem({
   selectedSlot,
   disabled = false,
   size = "md",
+  draggable = false,
+  onQuickTap,
+  onLongPress,
+  onDragEndToSlot,
 }: CardItemProps) {
   const theme = ELEMENT_THEMES[card.element] || ELEMENT_THEMES.AETHER;
   const rarity = RARITY_LABELS[card.rarity] || RARITY_LABELS.COMMON;
@@ -165,15 +177,154 @@ export function CardItem({
   const isSmall = size === "sm";
   const isLarge = size === "lg";
 
+  // Gesture detection refs
+  const pointerStartTimeRef = useRef<number>(0);
+  const pointerStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasDraggedRef = useRef<boolean>(false);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    pointerStartTimeRef.current = Date.now();
+    pointerStartPosRef.current = { x: e.clientX, y: e.clientY };
+    hasDraggedRef.current = false;
+
+    // Start 500ms timer for Long-Press (Details Modal)
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      if (!hasDraggedRef.current) {
+        onLongPress?.(card);
+      }
+    }, 500);
+  }, [card, onLongPress]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    const dist = Math.hypot(
+      e.clientX - pointerStartPosRef.current.x,
+      e.clientY - pointerStartPosRef.current.y
+    );
+    // If pointer moves more than 8px, cancel long-press and mark as drag intention
+    if (dist > 8) {
+      hasDraggedRef.current = true;
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    }
+  }, []);
+
+  const handlePointerUp = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    const elapsed = Date.now() - pointerStartTimeRef.current;
+    // If not dragged and released before 350ms -> Quick Tap (Fullscreen Appreciation)
+    if (!hasDraggedRef.current && elapsed < 350) {
+      if (onQuickTap) {
+        onQuickTap(card);
+      } else if (onClick) {
+        onClick();
+      }
+    }
+  }, [card, onClick, onQuickTap]);
+
+  // Framer Motion Drag End detection for Slot A or Slot B
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (!onDragEndToSlot) return;
+
+    const scrollX = typeof window !== "undefined" ? window.scrollX : 0;
+    const scrollY = typeof window !== "undefined" ? window.scrollY : 0;
+    const clientX = info.point.x - scrollX;
+    const clientY = info.point.y - scrollY;
+
+    // Check elements under drop point using both viewport client coordinates and point
+    const elements = typeof document !== "undefined" && document.elementsFromPoint
+      ? [
+          ...document.elementsFromPoint(clientX, clientY),
+          ...document.elementsFromPoint(info.point.x, info.point.y),
+        ]
+      : [];
+    let targetSlot: "A" | "B" | null = null;
+
+    for (const el of elements) {
+      const slotEl = el.closest ? el.closest("[data-drop-slot]") : null;
+      const slotAttr = slotEl?.getAttribute("data-drop-slot") || el.getAttribute("data-drop-slot");
+      if (slotAttr === "A" || slotAttr === "B") {
+        targetSlot = slotAttr as "A" | "B";
+        break;
+      }
+    }
+
+    // Direct bounding rect fallback comparing both client and page coordinates
+    if (!targetSlot && typeof document !== "undefined") {
+      const slotAElem = document.querySelector('[data-drop-slot="A"]');
+      const slotBElem = document.querySelector('[data-drop-slot="B"]');
+      if (slotAElem) {
+        const rect = slotAElem.getBoundingClientRect();
+        const inClient =
+          clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+        const inPage =
+          info.point.x >= rect.left + scrollX &&
+          info.point.x <= rect.right + scrollX &&
+          info.point.y >= rect.top + scrollY &&
+          info.point.y <= rect.bottom + scrollY;
+        if (inClient || inPage) {
+          targetSlot = "A";
+        }
+      }
+      if (!targetSlot && slotBElem) {
+        const rect = slotBElem.getBoundingClientRect();
+        const inClient =
+          clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+        const inPage =
+          info.point.x >= rect.left + scrollX &&
+          info.point.x <= rect.right + scrollX &&
+          info.point.y >= rect.top + scrollY &&
+          info.point.y <= rect.bottom + scrollY;
+        if (inClient || inPage) {
+          targetSlot = "B";
+        }
+      }
+    }
+
+    if (targetSlot) {
+      onDragEndToSlot(card, targetSlot);
+    }
+  };
+
   return (
-    <article
-      onClick={() => !disabled && onClick?.()}
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-300 select-none ${
+    <motion.article
+      layout
+      drag={draggable && !disabled}
+      dragSnapToOrigin={true}
+      dragElastic={0.35}
+      dragMomentum={false}
+      onDragStart={() => {
+        hasDraggedRef.current = true;
+        if (longPressTimerRef.current) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+      }}
+      onDragEnd={handleDragEnd}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={() => {
+        if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      }}
+      whileHover={{ scale: disabled ? 1 : 1.03, y: disabled ? 0 : -4 }}
+      whileTap={{ scale: disabled ? 1 : 0.97 }}
+      whileDrag={{ scale: 1.08, zIndex: 60, cursor: "grabbing" }}
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-colors duration-200 select-none ${
         theme.border
       } ${theme.glow} ${
         disabled
           ? "opacity-50 cursor-not-allowed"
-          : "cursor-pointer hover:-translate-y-1.5 hover:shadow-2xl"
+          : draggable
+          ? "cursor-grab active:cursor-grabbing"
+          : "cursor-pointer"
       } ${
         selectedSlot
           ? "ring-2 ring-cyan-400 ring-offset-2 ring-offset-[#0A0C18] scale-[1.02]"
@@ -190,7 +341,7 @@ export function CardItem({
       )}
 
       {/* Header Info */}
-      <div className="flex items-center justify-between p-2.5 z-10">
+      <div className="flex items-center justify-between p-2.5 z-10 pointer-events-none">
         <span
           className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold border ${theme.badge}`}
         >
@@ -205,20 +356,18 @@ export function CardItem({
       </div>
 
       {/* Card Artwork Image Container */}
-      <div className="relative mx-2 aspect-[4/3] overflow-hidden rounded-xl bg-black/60 ring-1 ring-white/10">
+      <div className="relative mx-2 aspect-[4/3] overflow-hidden rounded-xl bg-black/60 ring-1 ring-white/10 pointer-events-none">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={artwork}
           alt={card.name}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           onError={(e) => {
-            // Fallback to elemental svg
             (e.target as HTMLImageElement).src = `/cards/${card.element.toLowerCase()}.svg`;
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
 
-        {/* Token ID if minted */}
         {card.token_id !== undefined && card.token_id !== null && (
           <span className="absolute bottom-1.5 left-2 font-mono text-[10px] text-zinc-300 font-bold bg-black/70 px-1.5 py-0.5 rounded backdrop-blur">
             #{card.token_id.toString()}
@@ -227,7 +376,7 @@ export function CardItem({
       </div>
 
       {/* Card Body */}
-      <div className="p-3 flex flex-col justify-between flex-1 gap-2 z-10">
+      <div className="p-3 flex flex-col justify-between flex-1 gap-2 z-10 pointer-events-none">
         <div>
           <h4 className="font-bold text-white tracking-tight line-clamp-1 text-sm sm:text-base">
             {card.name}
@@ -258,6 +407,6 @@ export function CardItem({
           </div>
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }

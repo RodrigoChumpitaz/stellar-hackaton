@@ -5,6 +5,8 @@ import { TopNav } from "@/components/navbar/TopNav";
 import { ForgeTable } from "@/components/forge/ForgeTable";
 import { InventoryDrawer } from "@/components/forge/InventoryDrawer";
 import { RevealModal } from "@/components/forge/RevealModal";
+import { CardInspectModal } from "@/components/cards/CardInspectModal";
+import { CardDetailsModal } from "@/components/cards/CardDetailsModal";
 import { CardItem, type CardData } from "@/components/cards/CardItem";
 import { useWallet } from "@/wallet/WalletProvider";
 import { getUserCards } from "@/lib/cards/queries";
@@ -39,11 +41,15 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
   const [isForging, setIsForging] = useState(false);
   const [forgeMessage, setForgeMessage] = useState<string | null>(null);
 
-  // Reveal modal states
+  // Modals state
   const [revealModalOpen, setRevealModalOpen] = useState(false);
   const [forgedResult, setForgedResult] = useState<CardData | null>(null);
   const [lastBurnedA, setLastBurnedA] = useState<CardData | null>(null);
   const [lastBurnedB, setLastBurnedB] = useState<CardData | null>(null);
+
+  // Card Inspection & Details states
+  const [inspectingCard, setInspectingCard] = useState<CardData | null>(null);
+  const [detailsCard, setDetailsCard] = useState<CardData | null>(null);
 
   // Load user cards when wallet connects
   const fetchUserInventory = useCallback(async () => {
@@ -67,11 +73,9 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
           }))
         );
       } else {
-        // Fallback to initial starter catalog if new account
         setUserDeck(initialCatalog);
       }
     } catch {
-      // Graceful fallback to initial catalog
       setUserDeck(initialCatalog);
     } finally {
       setIsLoadingInventory(false);
@@ -86,37 +90,25 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
     }
   }, [wallet.isConnected, wallet.publicKey, fetchUserInventory, initialCatalog]);
 
-  // Handle card selection from inventory
-  const handleSelectCard = (card: CardData) => {
-    if (isForging) return;
+  // Handle Drag & Drop to Slot A or Slot B (Exclusive assignment method)
+  const handleDragEndToSlot = useCallback(
+    (card: CardData, targetSlot: "A" | "B") => {
+      if (isForging) return;
 
-    // If card is already in Slot A, remove it
-    if (slotA?.id === card.id) {
-      setSlotA(null);
-      return;
-    }
-
-    // If card is already in Slot B, remove it
-    if (slotB?.id === card.id) {
-      setSlotB(null);
-      return;
-    }
-
-    // If Slot A is empty, place it in Slot A
-    if (!slotA) {
-      setSlotA(card);
-      return;
-    }
-
-    // If Slot B is empty, place it in Slot B
-    if (!slotB) {
-      setSlotB(card);
-      return;
-    }
-
-    // If both slots are full, replace Slot A with new card
-    setSlotA(card);
-  };
+      if (targetSlot === "A") {
+        if (slotB?.id === card.id) {
+          setSlotB(null);
+        }
+        setSlotA(card);
+      } else if (targetSlot === "B") {
+        if (slotA?.id === card.id) {
+          setSlotA(null);
+        }
+        setSlotB(card);
+      }
+    },
+    [isForging, slotA, slotB]
+  );
 
   // Execute Forge Synthesis
   const handleStartForge = async () => {
@@ -127,59 +119,49 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
     const parentB = slotB;
 
     try {
-      // Step 1: Invocando IA
       setForgeMessage("1/3 · Gemini 2.0 Flash balanceando atributos...");
       await new Promise((r) => setTimeout(r, 900));
 
-      // Step 2: Simulación y firma
       setForgeMessage("2/3 · Simulando huella atómica en Soroban RPC...");
       await new Promise((r) => setTimeout(r, 900));
 
-      // Step 3: Quema y Acuñación
       setForgeMessage("3/3 · Ejecutando Burn & Mint en Testnet...");
       await new Promise((r) => setTimeout(r, 1000));
 
-      // Calculate deterministic hybrid result using Module 1 rules
-      const newElement = forgeElement(parentA.element, parentB.element);
-      const newRarity = forgeRarity(parentA.rarity, parentB.rarity);
-      const budget = STAT_BUDGET[newRarity];
+      const derivedElement = forgeElement(parentA.element, parentB.element);
+      const derivedRarity = forgeRarity(parentA.rarity, parentB.rarity);
+      const newAtk = Math.max(parentA.atk, parentB.atk) + 1;
+      const newDef = Math.max(parentA.def, parentB.def) + 1;
 
-      // Balanced stats derived from parents
-      const avgAtk = Math.round((parentA.atk + parentB.atk) / 2);
-      const avgDef = Math.round((parentA.def + parentB.def) / 2);
-      const bonus = newRarity === "EPIC" || newRarity === "RARE" ? 2 : 1;
-      const finalAtk = Math.min(Math.max(avgAtk + bonus, budget.min / 2), budget.max);
-      const finalDef = Math.max(budget.min - finalAtk, Math.min(avgDef + bonus, budget.max - finalAtk));
-
-      // Result card
-      const hybridCard: CardData = {
-        id: `hybrid-${Date.now()}`,
-        token_id: Math.floor(700 + Math.random() * 200),
-        name: `${newElement === "STEAM" ? "Vapor Primordial" : newElement === "MAGMA" ? "Furia Ígnea" : "Quimera Cósmica"} #${Math.floor(100 + Math.random() * 900)}`,
-        element: newElement,
-        rarity: newRarity,
-        atk: Math.round(finalAtk),
-        def: Math.round(finalDef),
-        image_url:
-          newElement === "STEAM" || newElement === "AETHER"
-            ? "/cards/primordial-vapor.png"
-            : `/cards/${newElement.toLowerCase()}.svg`,
+      const newCard: CardData = {
+        id: `forged-${Date.now()}`,
+        name: derivedElement === "STEAM"
+          ? "Vapor Primordial #211"
+          : derivedElement === "MAGMA"
+          ? "Quimera Volcánica #104"
+          : `Runa Híbrida de ${derivedElement}`,
+        element: derivedElement,
+        rarity: derivedRarity,
+        atk: newAtk,
+        def: newDef,
+        image_url: derivedElement === "STEAM"
+          ? "/cards/primordial-vapor.png"
+          : null,
         lore: `Sintetizada de las esencias de ${parentA.name} y ${parentB.name}. Una creación atómica certificada en Soroban Testnet.`,
+        token_id: BigInt(Date.now() % 10000),
       };
 
-      // Burn parent cards from deck and add new card
+      setForgedResult(newCard);
+      setLastBurnedA(parentA);
+      setLastBurnedB(parentB);
+
+      // Update local deck: burn parents, add hybrid
       setUserDeck((prev) => [
-        hybridCard,
+        newCard,
         ...prev.filter((c) => c.id !== parentA.id && c.id !== parentB.id),
       ]);
 
-      // Open reveal modal
-      setLastBurnedA(parentA);
-      setLastBurnedB(parentB);
-      setForgedResult(hybridCard);
       setRevealModalOpen(true);
-
-      // Clear slots
       setSlotA(null);
       setSlotB(null);
     } finally {
@@ -214,7 +196,9 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
               cards={userDeck}
               selectedA={slotA}
               selectedB={slotB}
-              onSelectCard={handleSelectCard}
+              onQuickTap={(card) => setInspectingCard(card)}
+              onLongPress={(card) => setDetailsCard(card)}
+              onDragEndToSlot={handleDragEndToSlot}
               isConnected={wallet.isConnected}
             />
           </>
@@ -228,13 +212,18 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
                 Catálogo Canónico de Cartas
               </h2>
               <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-                Cartas base registradas en Supabase listas para forjar.
+                Cartas base registradas en Supabase listas para forjar. Toca para pantalla completa o mantén presionado para detalles.
               </p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {initialCatalog.map((card) => (
                 <div key={card.id.toString()} className="flex justify-center">
-                  <CardItem card={card} size="sm" />
+                  <CardItem
+                    card={card}
+                    size="sm"
+                    onQuickTap={(c) => setInspectingCard(c)}
+                    onLongPress={(c) => setDetailsCard(c)}
+                  />
                 </div>
               ))}
             </div>
@@ -266,62 +255,47 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800">
+                <tbody className="divide-y divide-zinc-800 font-mono">
                   {BASE_ELEMENTS.map((a) => (
-                    <tr key={a} className="hover:bg-zinc-900/40 transition-colors">
-                      <th className="p-3 font-bold text-white">{a}</th>
-                      {BASE_ELEMENTS.map((b) => {
-                        const el = forgeElement(a, b);
-                        return (
-                          <td key={b} className="p-3">
-                            <span className="inline-flex items-center gap-1.5 font-bold text-cyan-300">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={ELEMENT_IMAGE[el]}
-                                alt={el}
-                                className="h-4 w-4 object-contain"
-                              />
-                              {el}
-                            </span>
-                          </td>
-                        );
-                      })}
+                    <tr key={a} className="hover:bg-zinc-900/40">
+                      <td className="p-3 font-bold text-cyan-400">{a}</td>
+                      {BASE_ELEMENTS.map((b) => (
+                        <td key={b} className="p-3 font-semibold">
+                          {forgeElement(a, b)}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-
-            {/* Rarities Budget */}
-            <div className="mt-8 flex flex-wrap gap-3">
-              {CARD_RARITIES.map((r) => (
-                <div
-                  key={r}
-                  className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-xs"
-                >
-                  <span className="font-bold text-white">{r}:</span>{" "}
-                  <span className="text-zinc-400 font-mono">
-                    Presupuesto ATK+DEF {STAT_BUDGET[r].min}–{STAT_BUDGET[r].max}
-                  </span>
-                  {r !== "LEGENDARY" && (
-                    <span className="block mt-1 text-[11px] text-purple-400">
-                      → Forja con 2 cartas {r} resulta en {forgeRarity(r, r)}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
           </section>
         )}
       </main>
 
-      {/* Reveal Modal */}
+      {/* Reveal Modal (After Forging) */}
       <RevealModal
         isOpen={revealModalOpen}
         resultCard={forgedResult}
         parentA={lastBurnedA}
         parentB={lastBurnedB}
-        onClose={() => setRevealModalOpen(false)}
+        txHash="9a4f8e... (Soroban Testnet)"
+        onClose={() => {
+          setRevealModalOpen(false);
+          setForgedResult(null);
+        }}
+      />
+
+      {/* Card Fullscreen Inspection Modal (Quick Tap) */}
+      <CardInspectModal
+        card={inspectingCard}
+        onClose={() => setInspectingCard(null)}
+      />
+
+      {/* Card Technical Details Modal (Long-Press 0.5s) */}
+      <CardDetailsModal
+        card={detailsCard}
+        onClose={() => setDetailsCard(null)}
       />
     </div>
   );

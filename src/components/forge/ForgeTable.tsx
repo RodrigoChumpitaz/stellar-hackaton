@@ -6,6 +6,7 @@ import type { CardData } from "@/components/cards/CardItem";
 import { forgeElement, forgeRarity } from "@/lib/cards/forge-rules";
 import { ELEMENT_THEMES, ElementIcon } from "@/components/cards/CardItem";
 import { ZapIcon, FireIcon, SparklesIcon } from "@/components/icons/Elements";
+import { AetherCrystal } from "@/components/3d/AetherCrystal";
 
 interface ForgeTableProps {
   cardA: CardData | null;
@@ -128,16 +129,12 @@ export function ForgeTable({
             </div>
           )}
 
-          {/* Central Magical Glyph */}
-          <div className="relative flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-600/40 via-cyan-500/30 to-blue-700/40 p-1 ring-1 ring-cyan-400/40 shadow-[0_0_25px_rgba(0,229,255,0.35)]">
-            <span
-              className={`text-2xl transition-transform duration-700 ${
-                isForging ? "animate-spin text-cyan-300" : "text-white"
-              }`}
-            >
-              ✦
-            </span>
-          </div>
+          {/* Central 3D Interactive Aether Crystal */}
+          <AetherCrystal
+            isForging={isForging}
+            energyLevel={holdProgress}
+            className="w-28 h-28 sm:w-36 sm:h-36 -my-2"
+          />
 
           {/* Forge Action Button with Long-Press & Tap */}
           <div className="relative w-full sm:w-auto flex flex-col items-center">
