@@ -1,4 +1,4 @@
-import { useWallet } from './WalletProvider.js';
+import { useWallet } from './WalletProvider';
 
 function abbreviate(address: string) { return `${address.slice(0, 4)}…${address.slice(-4)}`; }
 function avatarHue(address: string) { return [...address].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 360; }

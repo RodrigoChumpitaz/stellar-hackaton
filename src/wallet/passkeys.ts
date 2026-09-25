@@ -1,6 +1,6 @@
 import { SmartAccountKit, type SmartAccountConfig } from 'smart-account-kit';
 import { IndexedDBStorage } from 'smart-account-kit/storage';
-import { TESTNET } from '../stellar.js';
+import { TESTNET } from '../stellar';
 
 /** Configuración de despliegue que debe proveer el entorno anfitrión, nunca el navegador. */
 export type PasskeyConfig = Pick<SmartAccountConfig, 'accountWasmHash' | 'webauthnVerifierAddress' | 'allowedOrigins'>;
