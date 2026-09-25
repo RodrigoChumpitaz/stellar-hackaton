@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Stellar Runes: catálogo, wallet Web3, Supabase y forja Soroban.",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
+    "dev:turbo": "next dev",
     "build": "npm run wallet:typecheck && next build",
     "start": "next start",
     "lint": "eslint .",

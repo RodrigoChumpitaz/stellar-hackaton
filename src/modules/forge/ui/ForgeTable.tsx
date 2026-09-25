@@ -10,7 +10,7 @@ import { ZapIcon, SparklesIcon } from "@/shared/ui/icons/Elements";
 import { ForgeIgniteButton } from "./ForgeIgniteButton";
 
 const AetherCrystal = dynamic(
-  () => import("./AetherCrystal").then((m) => m.AetherCrystal),
+  () => import("./AetherCrystal"),
   {
     ssr: false,
     loading: () => (

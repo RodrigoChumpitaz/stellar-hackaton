@@ -38,14 +38,20 @@ export function AetherCrystal({
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
     camera.position.set(0, 0.4, 4.2);
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      powerPreference: "high-performance",
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.appendChild(renderer.domElement);
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        powerPreference: "high-performance",
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+    } catch (err) {
+      console.warn("WebGL is not supported or failed to initialize", err);
+      return;
+    }
 
     // 2. Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
@@ -181,7 +187,7 @@ export function AetherCrystal({
       if (animFrameIdRef.current) {
         cancelAnimationFrame(animFrameIdRef.current);
       }
-      if (container && renderer.domElement) {
+      if (container && renderer?.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
       gemGeo.dispose();
@@ -190,7 +196,7 @@ export function AetherCrystal({
       cageMat.dispose();
       particleGeo.dispose();
       particleMat.dispose();
-      renderer.dispose();
+      renderer?.dispose();
     };
   }, []);
 
@@ -201,3 +207,5 @@ export function AetherCrystal({
     />
   );
 }
+
+export default AetherCrystal;
