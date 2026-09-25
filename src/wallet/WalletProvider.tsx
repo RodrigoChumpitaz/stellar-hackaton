@@ -1,4 +1,4 @@
-import { StrKey } from '@stellar/stellar-sdk';
+import { StrKey, Keypair, TransactionBuilder } from '@stellar/stellar-sdk';
 import { getAddress as getFreighterAddress, getNetwork, isConnected as isFreighterInstalled, requestAccess, signTransaction as freighterSignTransaction } from '@stellar/freighter-api';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { fundNewAccount, readAccount } from './account';
@@ -7,7 +7,8 @@ import { createPasskeyKit, type PasskeyConfig } from './passkeys';
 import { TESTNET } from '../stellar';
 
 const SESSION_KEY = 'stellar-runes.module-2.session';
-type SessionKind = 'kit' | 'freighter' | 'passkey';
+const QUICK_PLAY_KEY = 'stellar-runes.quick-play.secret';
+type SessionKind = 'kit' | 'freighter' | 'passkey' | 'quickplay';
 
 export interface WalletProviderProps {
   children: ReactNode;
@@ -27,12 +28,14 @@ export interface WalletState {
   sequenceNumber: string | null;
   isFunded: boolean;
   error: string | null;
+  clearError: () => void;
   /** Indica si la extensión Freighter está disponible; la conexión sigue siendo multi-wallet. */
   isFreighterAvailable: boolean;
   isPasskeyAvailable: boolean;
   connect: () => Promise<void>;
   connectFreighter: () => Promise<void>;
   connectPasskey: () => Promise<void>;
+  connectQuickPlay: () => Promise<void>;
   disconnect: () => void;
   fundWithFriendbot: () => Promise<boolean>;
   signTransaction: (xdr: string) => Promise<string>;
@@ -122,6 +125,38 @@ export function WalletProvider({ children, passkeyConfig }: WalletProviderProps)
     } finally { setIsConnecting(false); }
   }, [getPasskeyKit]);
 
+  const clearError = useCallback(() => setError(null), []);
+
+  const connectQuickPlay = useCallback(async () => {
+    setIsConnecting(true);
+    setError(null);
+    try {
+      let secret = typeof window !== 'undefined' ? localStorage.getItem(QUICK_PLAY_KEY) : null;
+      let pair: Keypair;
+      if (secret) {
+        try {
+          pair = Keypair.fromSecret(secret);
+        } catch {
+          pair = Keypair.random();
+          localStorage.setItem(QUICK_PLAY_KEY, pair.secret());
+        }
+      } else {
+        pair = Keypair.random();
+        localStorage.setItem(QUICK_PLAY_KEY, pair.secret());
+      }
+      const address = pair.publicKey();
+      setPublicKey(address);
+      setSmartAccountId(null);
+      setWalletType('QuickPlay');
+      localStorage.setItem(SESSION_KEY, 'quickplay');
+      await refreshAccount(address, true);
+    } catch (reason) {
+      setError(errorMessage(reason));
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [refreshAccount]);
+
   const disconnect = useCallback(() => {
     void walletKit().disconnect().catch(() => undefined);
     void passkeyKitRef.current?.disconnect().catch(() => undefined);
@@ -138,6 +173,14 @@ export function WalletProvider({ children, passkeyConfig }: WalletProviderProps)
   const signTransaction = useCallback(async (xdr: string) => {
     if (smartAccountId) throw new Error('Las cuentas Passkey usan signAndSubmitPasskeyTransaction para re-simular y firmar autorizaciones Soroban.');
     if (!publicKey) throw new Error('Conecta una billetera antes de firmar una transacción.');
+    if (walletType === 'QuickPlay') {
+      const secret = localStorage.getItem(QUICK_PLAY_KEY);
+      if (!secret) throw new Error('No se encontró la clave secreta de la cuenta rápida.');
+      const pair = Keypair.fromSecret(secret);
+      const tx = TransactionBuilder.fromXDR(xdr, TESTNET.networkPassphrase);
+      tx.sign(pair);
+      return tx.toXDR();
+    }
     if (walletType === 'Freighter') {
       const signed = await freighterSignTransaction(xdr, { networkPassphrase: TESTNET.networkPassphrase });
       if (signed.error) throw new Error(signed.error.message);
@@ -171,6 +214,20 @@ export function WalletProvider({ children, passkeyConfig }: WalletProviderProps)
       }).catch(() => localStorage.removeItem(SESSION_KEY));
       return;
     }
+    if (sessionKind === 'quickplay') {
+      const secret = localStorage.getItem(QUICK_PLAY_KEY);
+      if (!secret) { localStorage.removeItem(SESSION_KEY); return; }
+      try {
+        const pair = Keypair.fromSecret(secret);
+        const address = pair.publicKey();
+        setPublicKey(address);
+        setWalletType('QuickPlay');
+        void refreshAccount(address, false);
+      } catch {
+        localStorage.removeItem(SESSION_KEY);
+      }
+      return;
+    }
     if (sessionKind === 'passkey') {
       if (!passkeyConfig) { localStorage.removeItem(SESSION_KEY); return; }
       void getPasskeyKit().connectWallet().then((result) => {
@@ -188,9 +245,9 @@ export function WalletProvider({ children, passkeyConfig }: WalletProviderProps)
 
   const value = useMemo<WalletState>(() => ({
     isConnected: publicKey !== null || smartAccountId !== null, isConnecting, publicKey, smartAccountId, walletType, network: 'TESTNET',
-    xlmBalance, sequenceNumber, isFunded, error, isFreighterAvailable, isPasskeyAvailable: Boolean(passkeyConfig), connect, connectFreighter, connectPasskey, disconnect,
+    xlmBalance, sequenceNumber, isFunded, error, clearError, isFreighterAvailable, isPasskeyAvailable: Boolean(passkeyConfig), connect, connectFreighter, connectPasskey, connectQuickPlay, disconnect,
     fundWithFriendbot, signTransaction, signAndSubmitPasskeyTransaction,
-  }), [publicKey, smartAccountId, isConnecting, walletType, xlmBalance, sequenceNumber, isFunded, error, isFreighterAvailable, passkeyConfig, connect, connectFreighter, connectPasskey, disconnect, fundWithFriendbot, signTransaction, signAndSubmitPasskeyTransaction]);
+  }), [publicKey, smartAccountId, isConnecting, walletType, xlmBalance, sequenceNumber, isFunded, error, clearError, isFreighterAvailable, passkeyConfig, connect, connectFreighter, connectPasskey, connectQuickPlay, disconnect, fundWithFriendbot, signTransaction, signAndSubmitPasskeyTransaction]);
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
 }

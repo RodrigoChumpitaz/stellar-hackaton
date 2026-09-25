@@ -1,6 +1,7 @@
 "use client";
 
-import { useWallet } from "@/modules/wallet";
+import { useState } from "react";
+import { useWallet, ConnectWalletModal, AccountDetailsDrawer } from "@/modules/wallet";
 import { FireIcon, BookIcon, ZapIcon, SparklesIcon } from "@/shared/ui/icons/Elements";
 
 function abbreviate(address: string) {
@@ -15,6 +16,8 @@ export function TopNav({
   onTabChange: (tab: "forge" | "catalog" | "rules") => void;
 }) {
   const wallet = useWallet();
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
 
   return (
     <>
@@ -106,43 +109,67 @@ export function TopNav({
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => wallet.connectFreighter()}
+                  onClick={() => setIsConnectModalOpen(true)}
                   disabled={wallet.isConnecting}
-                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-3 sm:px-4 py-2 text-xs font-bold text-black shadow-[0_0_15px_rgba(0,229,255,0.4)] hover:brightness-110 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-3 sm:px-4 py-2 text-xs font-bold text-black shadow-[0_0_15px_rgba(0,229,255,0.4)] hover:brightness-110 active:scale-95 transition-all cursor-pointer disabled:opacity-50 min-h-[40px]"
                 >
                   <SparklesIcon className="w-3.5 h-3.5 text-black" />
-                  <span>{wallet.isConnecting ? "Conectando..." : "Conectar Wallet"}</span>
+                  <span>{wallet.isConnecting ? "Conectando..." : "Conectar"}</span>
+                  <span className="hidden sm:inline">{!wallet.isConnecting && " Wallet"}</span>
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                {/* Balance Pill */}
-                <div className="hidden sm:flex items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-1.5 text-xs font-mono text-zinc-300">
+                {/* Balance Pill (Clickable) */}
+                <button
+                  type="button"
+                  onClick={() => setIsAccountDrawerOpen(true)}
+                  className="hidden sm:flex items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-1.5 text-xs font-mono text-zinc-300 hover:border-zinc-700 transition-colors cursor-pointer"
+                  title="Ver detalles de saldo"
+                >
                   <span className="text-[10px] text-zinc-500">XLM:</span>
                   <span className="font-bold text-cyan-400">
-                    {wallet.xlmBalance.toFixed(2)}
+                    {wallet.xlmBalance.toLocaleString("en-US", { maximumFractionDigits: 2 })}
                   </span>
-                </div>
+                </button>
 
-                {/* Account / Disconnect Dropdown */}
-                <div className="flex items-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-950/30 px-3 py-1.5 text-xs font-medium text-cyan-300">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
-                  <span className="font-mono text-xs">
-                    {wallet.publicKey ? abbreviate(wallet.publicKey) : "Conectado"}
+                {/* Account / Profile Chip (Clickable to open AccountDetailsDrawer) */}
+                <button
+                  type="button"
+                  onClick={() => setIsAccountDrawerOpen(true)}
+                  className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-cyan-500/40 bg-cyan-950/40 px-2.5 sm:px-3 py-1.5 text-xs font-medium text-cyan-300 hover:bg-cyan-900/40 hover:border-cyan-400 active:scale-95 transition-all cursor-pointer min-h-[36px]"
+                  title="Abrir perfil de jugador"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
                   </span>
-                  <button
-                    onClick={() => wallet.disconnect()}
-                    title="Desconectar"
-                    className="ml-1 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                </div>
+                  <span className="font-mono text-xs font-semibold">
+                    {wallet.publicKey
+                      ? abbreviate(wallet.publicKey)
+                      : wallet.smartAccountId
+                        ? abbreviate(wallet.smartAccountId)
+                        : "Conectado"}
+                  </span>
+                  <span className="text-[10px] text-cyan-400/80 ml-0.5">▼</span>
+                </button>
               </div>
             )}
           </div>
         </div>
       </header>
+
+      {/* Connect Wallet Modal / Mobile Bottom Sheet */}
+      <ConnectWalletModal
+        isOpen={isConnectModalOpen}
+        onClose={() => setIsConnectModalOpen(false)}
+      />
+
+      {/* Player Account Details Sheet */}
+      <AccountDetailsDrawer
+        isOpen={isAccountDrawerOpen}
+        onClose={() => setIsAccountDrawerOpen(false)}
+      />
 
       {/* Mobile-First Fixed Bottom Navigation Bar */}
       <nav className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-[#0A0C18]/95 border-t border-zinc-800/90 backdrop-blur-xl flex items-center justify-around py-2 px-3 shadow-[0_-8px_20px_rgba(0,0,0,0.6)]">
