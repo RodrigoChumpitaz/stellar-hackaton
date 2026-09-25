@@ -15,9 +15,8 @@ contrato Soroban acuña una híbrida cuyos stats generó Gemini y firmó un orá
 Stack: Next.js 16 (App Router, `src/`) · TypeScript · Supabase · Zod · Stellar Wallets Kit · Soroban (Rust) · Vercel.
 
 Antes de tocar datos o reglas del juego, lee las skills del proyecto:
-- `.claude/skills/data/SKILL.md` — la DB es read-model; quién escribe y cuándo.
-- `.claude/skills/standards/SKILL.md` — elementos, reglas de forja, stats, metadata, payload del oráculo.
-(`.agents/skills` es un symlink a `.claude/skills`.)
+- `.agents/skills/data/SKILL.md` — la DB es read-model; quién escribe y cuándo.
+- `.agents/skills/standards/SKILL.md` — elementos, reglas de forja, stats, metadata, payload del oráculo.
 
 ## Estado de módulos
 | # | Módulo | Estado |
