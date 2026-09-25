@@ -1,10 +1,10 @@
 import { StrKey } from '@stellar/stellar-sdk';
 import { getAddress as getFreighterAddress, getNetwork, isConnected as isFreighterInstalled, requestAccess, signTransaction as freighterSignTransaction } from '@stellar/freighter-api';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { fundNewAccount, readAccount } from './account.js';
-import { walletKit } from './kit.js';
-import { createPasskeyKit, type PasskeyConfig } from './passkeys.js';
-import { TESTNET } from '../stellar.js';
+import { fundNewAccount, readAccount } from './account';
+import { walletKit } from './kit';
+import { createPasskeyKit, type PasskeyConfig } from './passkeys';
+import { TESTNET } from '../stellar';
 
 const SESSION_KEY = 'stellar-runes.module-2.session';
 type SessionKind = 'kit' | 'freighter' | 'passkey';

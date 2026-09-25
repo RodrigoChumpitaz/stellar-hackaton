@@ -1,5 +1,5 @@
 import { NotFoundError } from '@stellar/stellar-sdk';
-import { horizon, TESTNET } from '../stellar.js';
+import { horizon, TESTNET } from '../stellar';
 
 export type AccountSnapshot = { exists: boolean; xlmBalance: number; sequenceNumber: string | null };
 
