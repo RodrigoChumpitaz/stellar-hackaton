@@ -104,9 +104,14 @@ export function CardDetailsModal({ card, onClose }: CardDetailsModalProps) {
 
             {/* Stat Progress Bars */}
             <div className="rounded-2xl bg-zinc-900/40 border border-zinc-800/80 p-3.5 space-y-3">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 block">
-                Poder Combina-Atómico
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 block">
+                  Poder Combina-Atómico y Balance
+                </span>
+                <span className="text-[11px] font-mono font-bold text-purple-300 bg-purple-950/60 border border-purple-500/30 px-2 py-0.5 rounded-full">
+                  Power Score: {card.power_score ?? Number((card.atk + card.def + (card.speed ?? 5) * 0.5).toFixed(1))}
+                </span>
+              </div>
 
               {/* ATK Bar */}
               <div>
@@ -149,6 +154,27 @@ export function CardDetailsModal({ card, onClose }: CardDetailsModalProps) {
                   />
                 </div>
               </div>
+
+              {/* Speed Bar */}
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+                    <span className="text-xs">⚡</span>
+                    <span>Velocidad / Iniciativa (SPD)</span>
+                  </div>
+                  <span className="font-mono font-extrabold text-amber-300">
+                    {card.speed ?? 5} / 10
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-zinc-800 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, ((card.speed ?? 5) / 10) * 100)}%` }}
+                    transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+                    className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Passive Skill */}
@@ -156,15 +182,42 @@ export function CardDetailsModal({ card, onClose }: CardDetailsModalProps) {
               <div className="p-2 rounded-xl bg-purple-900/40 border border-purple-500/40 text-purple-300">
                 <ZapIcon className="w-4 h-4" />
               </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-purple-300 block">
-                  Habilidad Pasiva
-                </span>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-purple-300 block">
+                    {card.passive?.name || "Habilidad Pasiva"}
+                  </span>
+                  <span className="rounded bg-purple-900/40 border border-purple-500/40 px-1.5 py-0.5 text-[9px] font-mono text-purple-300">
+                    {card.passive?.trigger || "PASIVA"}
+                  </span>
+                </div>
                 <p className="text-xs text-zinc-300 mt-0.5 leading-snug">
-                  {card.passive_skill || "Resonancia Elemental: Aumenta la probabilidad de forja de alta rareza en un 10% al combinarse con elementos opuestos."}
+                  {card.passive?.description || card.passive_skill || "Resonancia Elemental: Aumenta la efectividad de combate frente a elementos opuestos."}
                 </p>
               </div>
             </div>
+
+            {/* Active Skill */}
+            {card.active && (
+              <div className="rounded-2xl bg-cyan-950/20 border border-cyan-500/30 p-3.5 flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-cyan-900/40 border border-cyan-500/40 text-cyan-300">
+                  <span className="text-sm">🔮</span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-cyan-300 block">
+                      {card.active.name}
+                    </span>
+                    <span className="rounded bg-cyan-900/40 border border-cyan-500/40 px-1.5 py-0.5 text-[9px] font-mono text-cyan-300">
+                      Coste: {card.active.energy_cost} Éter
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-300 mt-0.5 leading-snug">
+                    {card.active.description}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Stellar Soroban Verification Status */}
             <div className="flex items-center justify-between text-[11px] font-mono px-1 text-zinc-400">
@@ -174,10 +227,16 @@ export function CardDetailsModal({ card, onClose }: CardDetailsModalProps) {
                 <span className="text-emerald-400 font-semibold">
                   {card.token_id !== undefined && card.token_id !== null ? "Acuñado on-chain" : "Catálogo Base"}
                 </span>
+                {card.prestige_level !== undefined && card.prestige_level > 0 && (
+                  <span className="text-amber-400 font-bold ml-1">
+                    (★ Ascensión {card.prestige_level})
+                  </span>
+                )}
               </span>
               <span>Stellar Testnet</span>
             </div>
           </div>
+
 
           {/* Footer action button */}
           <div className="pt-2 border-t border-zinc-800/80">

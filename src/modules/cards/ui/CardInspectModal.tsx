@@ -166,9 +166,16 @@ export function CardInspectModal({ card, onClose }: CardInspectModalProps) {
             {/* Card Information */}
             <div className="p-4 flex flex-col gap-3 z-10">
               <div>
-                <h3 className="font-extrabold text-white text-lg sm:text-xl tracking-tight">
-                  {card.name}
-                </h3>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-extrabold text-white text-lg sm:text-xl tracking-tight">
+                    {card.name}
+                  </h3>
+                  {card.prestige_level !== undefined && card.prestige_level > 0 && (
+                    <span className="rounded-full bg-gradient-to-r from-amber-500/20 to-yellow-500/30 border border-amber-400/60 px-2 py-0.5 text-[10px] font-black text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.3)]">
+                      ★ Ascensión {card.prestige_level}
+                    </span>
+                  )}
+                </div>
                 {(card.description || card.lore) && (
                   <p className="mt-1 text-xs text-zinc-300 leading-relaxed italic">
                     &ldquo;{card.description || card.lore}&rdquo;
@@ -176,30 +183,87 @@ export function CardInspectModal({ card, onClose }: CardInspectModalProps) {
                 )}
               </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-800">
-                <div className="flex items-center justify-between rounded-xl bg-red-950/50 border border-red-500/40 p-2">
-                  <div className="flex items-center gap-1.5 text-red-400">
-                    <SwordIcon className="w-4 h-4" />
-                    <span className="text-[11px] font-bold">ATK</span>
+              {/* 4 Core Combat Stats (ATK, DEF, SPD, Power Score) */}
+              <div className="grid grid-cols-4 gap-2 pt-2 border-t border-zinc-800">
+                <div className="flex flex-col items-center justify-center rounded-xl bg-red-950/40 border border-red-500/30 p-2">
+                  <div className="flex items-center gap-1 text-red-400">
+                    <SwordIcon className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold">ATK</span>
                   </div>
-                  <span className="font-mono text-base font-extrabold text-red-300">
+                  <span className="font-mono text-sm sm:text-base font-extrabold text-red-300">
                     {card.atk}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between rounded-xl bg-cyan-950/50 border border-cyan-500/40 p-2">
-                  <div className="flex items-center gap-1.5 text-cyan-400">
-                    <ShieldIcon className="w-4 h-4" />
-                    <span className="text-[11px] font-bold">DEF</span>
+                <div className="flex flex-col items-center justify-center rounded-xl bg-cyan-950/40 border border-cyan-500/30 p-2">
+                  <div className="flex items-center gap-1 text-cyan-400">
+                    <ShieldIcon className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold">DEF</span>
                   </div>
-                  <span className="font-mono text-base font-extrabold text-cyan-300">
+                  <span className="font-mono text-sm sm:text-base font-extrabold text-cyan-300">
                     {card.def}
                   </span>
                 </div>
+
+                <div className="flex flex-col items-center justify-center rounded-xl bg-amber-950/40 border border-amber-500/30 p-2">
+                  <div className="flex items-center gap-1 text-amber-400">
+                    <span className="text-xs">⚡</span>
+                    <span className="text-[10px] font-bold">SPD</span>
+                  </div>
+                  <span className="font-mono text-sm sm:text-base font-extrabold text-amber-300">
+                    {card.speed ?? 5}
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-center justify-center rounded-xl bg-purple-950/40 border border-purple-500/30 p-2">
+                  <div className="flex items-center gap-1 text-purple-400">
+                    <span className="text-xs">🏆</span>
+                    <span className="text-[10px] font-bold">PWR</span>
+                  </div>
+                  <span className="font-mono text-sm sm:text-base font-extrabold text-purple-300">
+                    {card.power_score ?? Number((card.atk + card.def + (card.speed ?? 5) * 0.5).toFixed(1))}
+                  </span>
+                </div>
               </div>
+
+              {/* Tactical Passive Skill */}
+              {(card.passive || card.passive_skill) && (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-2.5 text-left">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-bold text-white flex items-center gap-1">
+                      <SparklesIcon className="w-3.5 h-3.5 text-purple-400" />
+                      <span>{card.passive?.name || "Habilidad Pasiva"}</span>
+                    </span>
+                    <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[9px] font-mono text-zinc-400 border border-zinc-700">
+                      {card.passive?.trigger || "PASIVA"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-300 leading-normal">
+                    {card.passive?.description || card.passive_skill}
+                  </p>
+                </div>
+              )}
+
+              {/* Tactical Active Skill */}
+              {card.active && (
+                <div className="rounded-xl border border-cyan-500/30 bg-cyan-950/30 p-2.5 text-left">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-bold text-cyan-200 flex items-center gap-1">
+                      <span>🔮</span>
+                      <span>{card.active.name}</span>
+                    </span>
+                    <span className="rounded bg-cyan-900/50 px-1.5 py-0.5 text-[9px] font-mono font-bold text-cyan-300 border border-cyan-500/40">
+                      Coste: {card.active.energy_cost} Éter
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-300 leading-normal">
+                    {card.active.description}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
+
 
           <p className="mt-3 text-[11px] text-zinc-500 font-mono">
             Mueve el cursor o dedo para rotar en 3D · Toca fuera para cerrar

@@ -29,6 +29,7 @@ interface ForgeTableProps {
   onStartForge: () => void;
   isForging: boolean;
   forgeStepMessage?: string | null;
+  onDragEndToSlot?: (card: CardData, targetSlot: "A" | "B") => void;
 }
 
 export function ForgeTable({
@@ -39,7 +40,9 @@ export function ForgeTable({
   onStartForge,
   isForging,
   forgeStepMessage,
+  onDragEndToSlot,
 }: ForgeTableProps) {
+
   const canForge = Boolean(cardA && cardB && cardA.id !== cardB.id && !isForging);
 
   // Crystal energy sync during long-press hold
@@ -56,17 +59,20 @@ export function ForgeTable({
     : null;
 
   return (
-    <section className="relative w-full rounded-3xl border border-zinc-800/80 bg-gradient-to-b from-[#111428]/90 via-[#0E1022]/90 to-[#0A0C18]/95 p-4 sm:p-8 md:p-10 shadow-2xl backdrop-blur-xl overflow-hidden select-none">
-      {/* 3D Floor Perspective Holographic Altar */}
-      <div className="absolute inset-x-0 -bottom-10 flex justify-center pointer-events-none [perspective:900px]">
-        <div className="h-64 w-[90%] max-w-3xl rounded-full border border-cyan-500/20 bg-gradient-to-t from-cyan-950/30 to-purple-950/10 [transform:rotateX(65deg)] shadow-[0_0_60px_rgba(0,229,255,0.15)] animate-pulse" />
-      </div>
+    <section className="relative z-20 w-full rounded-3xl border border-zinc-800/80 bg-gradient-to-b from-[#111428]/90 via-[#0E1022]/90 to-[#0A0C18]/95 p-4 sm:p-8 md:p-10 shadow-2xl backdrop-blur-xl select-none">
+      {/* Background container with overflow-hidden for ambient effects */}
+      <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+        {/* 3D Floor Perspective Holographic Altar */}
+        <div className="absolute inset-x-0 -bottom-10 flex justify-center pointer-events-none [perspective:900px]">
+          <div className="h-64 w-[90%] max-w-3xl rounded-full border border-cyan-500/20 bg-gradient-to-t from-cyan-950/30 to-purple-950/10 [transform:rotateX(65deg)] shadow-[0_0_60px_rgba(0,229,255,0.15)] animate-pulse" />
+        </div>
 
-      {/* Background Decorative Rings */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-        <div className="h-[480px] w-[480px] rounded-full border border-cyan-500 animate-[spin_60s_linear_infinite]" />
-        <div className="absolute h-[360px] w-[360px] rounded-full border border-purple-500 animate-[spin_40s_linear_infinite_reverse]" />
-        <div className="absolute h-[240px] w-[240px] rounded-full border border-dashed border-cyan-300" />
+        {/* Background Decorative Rings */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+          <div className="h-[480px] w-[480px] rounded-full border border-cyan-500 animate-[spin_60s_linear_infinite]" />
+          <div className="absolute h-[360px] w-[360px] rounded-full border border-purple-500 animate-[spin_40s_linear_infinite_reverse]" />
+          <div className="absolute h-[240px] w-[240px] rounded-full border border-dashed border-cyan-300" />
+        </div>
       </div>
 
       {/* Header */}
@@ -92,6 +98,7 @@ export function ForgeTable({
           card={cardA}
           onRemove={onRemoveA}
           isForging={isForging}
+          onDragEndToSlot={onDragEndToSlot}
         />
 
         {/* Fusion Core */}
@@ -148,7 +155,9 @@ export function ForgeTable({
           card={cardB}
           onRemove={onRemoveB}
           isForging={isForging}
+          onDragEndToSlot={onDragEndToSlot}
         />
+
       </div>
     </section>
   );

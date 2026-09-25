@@ -11,13 +11,20 @@ function abbreviate(address: string) {
 export function TopNav({
   activeTab,
   onTabChange,
+  isConnectModalOpen: controlledModalOpen,
+  onConnectModalChange,
 }: {
-  activeTab: "forge" | "catalog" | "rules";
-  onTabChange: (tab: "forge" | "catalog" | "rules") => void;
+  activeTab: "forge" | "decks" | "rules";
+  onTabChange: (tab: "forge" | "decks" | "rules") => void;
+  isConnectModalOpen?: boolean;
+  onConnectModalChange?: (open: boolean) => void;
 }) {
   const wallet = useWallet();
-  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [internalConnectOpen, setInternalConnectOpen] = useState(false);
+  const isConnectModalOpen = controlledModalOpen !== undefined ? controlledModalOpen : internalConnectOpen;
+  const setIsConnectModalOpen = onConnectModalChange || setInternalConnectOpen;
   const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
+
 
   return (
     <>
@@ -65,15 +72,15 @@ export function TopNav({
             </button>
             <button
               type="button"
-              onClick={() => onTabChange("catalog")}
+              onClick={() => onTabChange("decks")}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === "catalog"
-                  ? "bg-zinc-800 text-cyan-300"
+                activeTab === "decks"
+                  ? "bg-zinc-800 text-cyan-300 font-bold ring-1 ring-cyan-500/40"
                   : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              <BookIcon className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Catálogo</span>
+              <span>🎴</span>
+              <span>Mis mazos</span>
             </button>
             <button
               type="button"
@@ -181,13 +188,13 @@ export function TopNav({
         </button>
         <button
           type="button"
-          onClick={() => onTabChange("catalog")}
+          onClick={() => onTabChange("decks")}
           className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all cursor-pointer ${
-            activeTab === "catalog" ? "text-cyan-400 font-bold" : "text-zinc-500"
+            activeTab === "decks" ? "text-cyan-400 font-bold" : "text-zinc-500"
           }`}
         >
-          <BookIcon className={`w-5 h-5 ${activeTab === "catalog" ? "text-cyan-400" : "text-zinc-500"}`} />
-          <span className="text-[10px]">Catálogo</span>
+          <span className="text-lg leading-none">🎴</span>
+          <span className="text-[10px]">Mis mazos</span>
         </button>
         <button
           type="button"

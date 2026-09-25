@@ -10,6 +10,7 @@ interface UseCardGesturesOptions {
   onQuickTap?: (card: CardData) => void;
   onLongPress?: (card: CardData) => void;
   onDragEndToSlot?: (card: CardData, targetSlot: "A" | "B") => void;
+  onDragEndToDrawer?: (card: CardData) => void;
 }
 
 export function useCardGestures({
@@ -18,7 +19,9 @@ export function useCardGestures({
   onQuickTap,
   onLongPress,
   onDragEndToSlot,
+  onDragEndToDrawer,
 }: UseCardGesturesOptions) {
+
   const pointerStartTimeRef = useRef<number>(0);
   const pointerStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -56,8 +59,8 @@ export function useCardGestures({
         e.clientX - pointerStartPosRef.current.x,
         e.clientY - pointerStartPosRef.current.y
       );
-      // If pointer moves more than 8px, cancel long-press and mark as drag intention
-      if (dist > 8) {
+      // If pointer moves more than 4px, cancel long-press and immediately mark drag intent
+      if (dist > 4) {
         hasDraggedRef.current = true;
         clearLongPressTimer();
       }
@@ -69,7 +72,7 @@ export function useCardGestures({
     clearLongPressTimer();
 
     const elapsed = Date.now() - pointerStartTimeRef.current;
-    // If not dragged and released before 350ms -> Quick Tap (Fullscreen Appreciation)
+    // If not dragged and released before 350ms -> Quick Tap
     if (!hasDraggedRef.current && elapsed < 350) {
       didTriggerTapRef.current = true;
       if (onQuickTap) {
@@ -105,14 +108,37 @@ export function useCardGestures({
 
   const handleDragEnd = useCallback(
     (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      if (!onDragEndToSlot) return;
+      if (!onDragEndToSlot && !onDragEndToDrawer) return;
 
       const scrollX = typeof window !== "undefined" ? window.scrollX : 0;
       const scrollY = typeof window !== "undefined" ? window.scrollY : 0;
       const clientX = info.point.x - scrollX;
       const clientY = info.point.y - scrollY;
 
-      // Check elements under drop point using both viewport client coordinates and point
+      // 1. Check if dropped back to inventory drawer or dragged downwards
+      if (onDragEndToDrawer) {
+        let inDrawerRect = false;
+        if (typeof document !== "undefined") {
+          const drawer = document.querySelector('[data-drop-zone="inventory"]');
+          if (drawer) {
+            const r = drawer.getBoundingClientRect();
+            inDrawerRect =
+              clientX >= r.left - 20 &&
+              clientX <= r.right + 20 &&
+              clientY >= r.top - 40;
+          }
+        }
+
+        // If dragged downwards more than 50px or dropped in drawer region
+        if (inDrawerRect || info.offset.y > 50) {
+          onDragEndToDrawer(card);
+          return;
+        }
+      }
+
+      if (!onDragEndToSlot) return;
+
+      // 2. Check elements under drop point
       const elements =
         typeof document !== "undefined" && document.elementsFromPoint
           ? [
@@ -120,6 +146,7 @@ export function useCardGestures({
               ...document.elementsFromPoint(info.point.x, info.point.y),
             ]
           : [];
+
       let targetSlot: "A" | "B" | null = null;
 
       for (const el of elements) {
@@ -133,41 +160,45 @@ export function useCardGestures({
         }
       }
 
-      // Direct bounding rect fallback comparing both client and page coordinates
+      // 3. Magnetic expanded bounding box detection (+50px tolerance)
       if (!targetSlot && typeof document !== "undefined") {
         const slotAElem = document.querySelector('[data-drop-slot="A"]');
         const slotBElem = document.querySelector('[data-drop-slot="B"]');
+        const TOLERANCE = 50;
+
+        let distA = Infinity;
+        let distB = Infinity;
+
         if (slotAElem) {
           const rect = slotAElem.getBoundingClientRect();
           const inClient =
-            clientX >= rect.left &&
-            clientX <= rect.right &&
-            clientY >= rect.top &&
-            clientY <= rect.bottom;
-          const inPage =
-            info.point.x >= rect.left + scrollX &&
-            info.point.x <= rect.right + scrollX &&
-            info.point.y >= rect.top + scrollY &&
-            info.point.y <= rect.bottom + scrollY;
-          if (inClient || inPage) {
-            targetSlot = "A";
+            clientX >= rect.left - TOLERANCE &&
+            clientX <= rect.right + TOLERANCE &&
+            clientY >= rect.top - TOLERANCE &&
+            clientY <= rect.bottom + TOLERANCE;
+          if (inClient) {
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            distA = Math.hypot(clientX - centerX, clientY - centerY);
           }
         }
-        if (!targetSlot && slotBElem) {
+
+        if (slotBElem) {
           const rect = slotBElem.getBoundingClientRect();
           const inClient =
-            clientX >= rect.left &&
-            clientX <= rect.right &&
-            clientY >= rect.top &&
-            clientY <= rect.bottom;
-          const inPage =
-            info.point.x >= rect.left + scrollX &&
-            info.point.x <= rect.right + scrollX &&
-            info.point.y >= rect.top + scrollY &&
-            info.point.y <= rect.bottom + scrollY;
-          if (inClient || inPage) {
-            targetSlot = "B";
+            clientX >= rect.left - TOLERANCE &&
+            clientX <= rect.right + TOLERANCE &&
+            clientY >= rect.top - TOLERANCE &&
+            clientY <= rect.bottom + TOLERANCE;
+          if (inClient) {
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            distB = Math.hypot(clientX - centerX, clientY - centerY);
           }
+        }
+
+        if (distA < Infinity || distB < Infinity) {
+          targetSlot = distA <= distB ? "A" : "B";
         }
       }
 
@@ -175,8 +206,9 @@ export function useCardGestures({
         onDragEndToSlot(card, targetSlot);
       }
     },
-    [card, onDragEndToSlot]
+    [card, onDragEndToSlot, onDragEndToDrawer]
   );
+
 
   return {
     handleClick,

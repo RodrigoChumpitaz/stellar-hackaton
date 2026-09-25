@@ -1,9 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useState } from "react";
 import { TopNav } from "@/shared/ui/navbar/TopNav";
 import { ForgeTable } from "./ForgeTable";
 import { InventoryDrawer } from "./InventoryDrawer";
+import { AetherGateSplash } from "./AetherGateSplash";
 import { useWallet } from "@/modules/wallet";
 import { CardItem } from "@/modules/cards/ui/CardItem";
 import { BASE_ELEMENTS } from "@/modules/cards/domain/constants";
@@ -11,20 +13,10 @@ import { forgeElement } from "../domain/forge-rules";
 import type { Card } from "@/modules/cards/domain/types";
 import { useForgeWorkbench } from "./hooks/useForgeWorkbench";
 
-const RevealModal = dynamic(
-  () => import("./RevealModal").then((m) => m.RevealModal),
-  { ssr: false }
-);
-
-const CardInspectModal = dynamic(
-  () => import("@/modules/cards/ui/CardInspectModal").then((m) => m.CardInspectModal),
-  { ssr: false }
-);
-
-const CardDetailsModal = dynamic(
-  () => import("@/modules/cards/ui/CardDetailsModal").then((m) => m.CardDetailsModal),
-  { ssr: false }
-);
+import { RevealModal } from "./RevealModal";
+import { CardInspectModal } from "@/modules/cards/ui/CardInspectModal";
+import { CardDetailsModal } from "@/modules/cards/ui/CardDetailsModal";
+import { DeckBuilderView } from "@/modules/deck/ui/DeckBuilderView";
 
 interface ForgeContainerProps {
   initialCatalog: Card[];
@@ -32,6 +24,7 @@ interface ForgeContainerProps {
 
 export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
   const wallet = useWallet();
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
 
   const {
     activeTab,
@@ -39,6 +32,7 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
     slotA,
     slotB,
     userDeck,
+    hasClaimedStarter,
     isForging,
     forgeMessage,
     forgedResult,
@@ -48,6 +42,7 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
     inspectingCard,
     detailsCard,
     equipCardToSlot,
+    autoEquipCard,
     removeCardFromSlot,
     startForge,
     closeRevealModal,
@@ -55,68 +50,76 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
     closeInspectingCard,
     setDetailsCard,
     closeDetailsCard,
+    claimStarterPack,
+    isClaimingStarter,
+    claimToast,
   } = useForgeWorkbench({
     initialCatalog,
-    walletAddress: wallet.publicKey,
+    walletAddress: wallet.publicKey || wallet.smartAccountId,
     isConnected: wallet.isConnected,
   });
 
   return (
     <div className="min-h-screen w-full bg-[#0A0C18] flex flex-col">
       {/* Top Navigation */}
-      <TopNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <TopNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        isConnectModalOpen={isConnectModalOpen}
+        onConnectModalChange={setIsConnectModalOpen}
+      />
 
       {/* Main Content Area */}
       <main className="mx-auto w-full max-w-7xl px-3 sm:px-6 pt-4 sm:pt-8 pb-24 md:pb-8 flex-1 flex flex-col gap-6 sm:gap-8">
         {/* TAB 1: THE FORGE CHAMBER */}
         {activeTab === "forge" && (
-          <>
-            <ForgeTable
-              cardA={slotA}
-              cardB={slotB}
-              onRemoveA={() => removeCardFromSlot("A")}
-              onRemoveB={() => removeCardFromSlot("B")}
-              onStartForge={startForge}
-              isForging={isForging}
-              forgeStepMessage={forgeMessage}
+          !wallet.isConnected ? (
+            <AetherGateSplash
+              onOpenConnect={() => setIsConnectModalOpen(true)}
+              onExploreCatalog={() => setActiveTab("decks")}
+              onExploreRules={() => setActiveTab("rules")}
             />
+          ) : (
+            <>
+              <ForgeTable
+                cardA={slotA}
+                cardB={slotB}
+                onRemoveA={() => removeCardFromSlot("A")}
+                onRemoveB={() => removeCardFromSlot("B")}
+                onStartForge={startForge}
+                isForging={isForging}
+                forgeStepMessage={forgeMessage}
+                onDragEndToSlot={equipCardToSlot}
+              />
 
-            <InventoryDrawer
-              cards={userDeck}
-              selectedA={slotA}
-              selectedB={slotB}
-              onQuickTap={(card) => setInspectingCard(card)}
-              onLongPress={(card) => setDetailsCard(card)}
-              onDragEndToSlot={equipCardToSlot}
-              isConnected={wallet.isConnected}
-            />
-          </>
+
+              <InventoryDrawer
+                cards={userDeck}
+                selectedA={slotA}
+                selectedB={slotB}
+                onQuickTap={(card) => setInspectingCard(card)}
+                onLongPress={(card) => setDetailsCard(card)}
+                onDragEndToSlot={equipCardToSlot}
+                isConnected={wallet.isConnected}
+                onClaimStarter={claimStarterPack}
+                isClaimingStarter={isClaimingStarter}
+                claimToast={claimToast}
+                hasClaimedStarter={hasClaimedStarter}
+              />
+            </>
+          )
         )}
 
-        {/* TAB 2: CATALOG VIEW */}
-        {activeTab === "catalog" && (
-          <section className="rounded-3xl border border-zinc-800 bg-[#0E1122]/80 p-6 sm:p-8 backdrop-blur-xl">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white tracking-tight">
-                Catálogo Canónico de Cartas
-              </h2>
-              <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-                Cartas base registradas en Supabase listas para forjar. Toca para pantalla completa o mantén presionado para detalles.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {initialCatalog.map((card) => (
-                <div key={card.id.toString()} className="flex justify-center">
-                  <CardItem
-                    card={card}
-                    size="sm"
-                    onQuickTap={(c) => setInspectingCard(c)}
-                    onLongPress={(c) => setDetailsCard(c)}
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
+
+        {/* TAB 2: MIS MAZOS (CONFIGURAR MAZO Y CATÁLOGO DE RUNAS) */}
+        {activeTab === "decks" && (
+          <DeckBuilderView
+            userCards={userDeck.length > 0 ? userDeck : initialCatalog}
+            walletAddress={wallet.publicKey || wallet.smartAccountId}
+            isConnected={wallet.isConnected}
+            onQuickTapCard={(card) => setInspectingCard(card)}
+            onLongPressCard={(card) => setDetailsCard(card)}
+          />
         )}
 
         {/* TAB 3: DETERMINISTIC FORGE RULES MATRIX */}

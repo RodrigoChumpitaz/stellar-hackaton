@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserCards, getCatalog } from "@/modules/cards/infrastructure/card-repository";
+import { getUserCards, hasClaimedStarterDeck } from "@/modules/cards/infrastructure/card-repository";
 import { StrKey } from "@stellar/stellar-sdk";
 
 export const dynamic = "force-dynamic";
@@ -17,8 +17,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const userCards = await getUserCards(wallet);
+    const hasClaimedStarter = await hasClaimedStarterDeck(wallet);
 
-    // Si el usuario ya tiene cartas forjadas o adquiridas en Supabase, se devuelven
+    // Si el usuario ya tiene cartas activas en Supabase, se devuelven
     if (userCards && userCards.length > 0) {
       const cards = userCards.map((c) => ({
         id: c.id,
@@ -30,23 +31,11 @@ export async function GET(request: NextRequest) {
         image_url: c.metadata_uri || "/cards/crystal-logo.png",
         description: c.lore || c.passive_skill || "",
       }));
-      return NextResponse.json({ cards });
+      return NextResponse.json({ cards, hasClaimedStarter: true });
     }
 
-    // Si es un jugador nuevo en Testnet sin cartas en user_cards, devolvemos el catálogo de inicio
-    const catalog = await getCatalog();
-    const starterCards = catalog.map((c) => ({
-      id: c.id,
-      name: c.name,
-      element: c.element,
-      rarity: c.rarity,
-      atk: c.base_atk,
-      def: c.base_def,
-      image_url: c.image_url,
-      description: c.description || "",
-    }));
-
-    return NextResponse.json({ cards: starterCards });
+    // Jugador nuevo (o sin cartas activas): inventario vacío y estado de reclamo
+    return NextResponse.json({ cards: [], hasClaimedStarter });
   } catch (error) {
     console.error("Error en GET /api/cards:", error);
     return NextResponse.json(
@@ -55,3 +44,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

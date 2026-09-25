@@ -25,6 +25,19 @@ export async function getUserCards(playerAddress: string): Promise<UserCard[]> {
   return data;
 }
 
+export async function hasClaimedStarterDeck(playerAddress: string): Promise<boolean> {
+  const address = StellarAddressSchema.parse(playerAddress);
+  const { count, error } = await getSupabase()
+    .from("user_cards")
+    .select("*", { count: "exact", head: true })
+    .eq("player_address", address);
+  if (error) {
+    console.warn("Error al verificar reclamo de mazo inicial:", error.message);
+    return false;
+  }
+  return (count ?? 0) > 0;
+}
+
 export async function getForgeHistory(playerAddress: string, limit = 20): Promise<ForgeRecord[]> {
   const address = StellarAddressSchema.parse(playerAddress);
   const { data, error } = await getSupabase()
@@ -36,3 +49,5 @@ export async function getForgeHistory(playerAddress: string, limit = 20): Promis
   if (error) throw new Error(`No se pudo leer el historial de forjas: ${error.message}`);
   return data;
 }
+
+

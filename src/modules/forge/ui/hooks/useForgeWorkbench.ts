@@ -16,15 +16,18 @@ export function useForgeWorkbench({
   isConnected,
 }: UseForgeWorkbenchProps) {
   // Navigation & Tabs
-  const [activeTab, setActiveTab] = useState<"forge" | "catalog" | "rules">("forge");
+  const [activeTab, setActiveTab] = useState<"forge" | "decks" | "rules">("forge");
 
   // Slots State
   const [slotA, setSlotA] = useState<Card | null>(null);
   const [slotB, setSlotB] = useState<Card | null>(null);
 
   // Deck & Inventory
-  const [userDeck, setUserDeck] = useState<Card[]>(initialCatalog);
+  const [userDeck, setUserDeck] = useState<Card[]>([]);
+  const [hasClaimedStarter, setHasClaimedStarter] = useState(false);
   const [isLoadingInventory, setIsLoadingInventory] = useState(false);
+  const [isClaimingStarter, setIsClaimingStarter] = useState(false);
+  const [claimToast, setClaimToast] = useState<string | null>(null);
 
   // Forge Lifecycle
   const [isForging, setIsForging] = useState(false);
@@ -48,7 +51,8 @@ export function useForgeWorkbench({
       if (prevConnectedRef.current) {
         prevConnectedRef.current = false;
         queueMicrotask(() => {
-          setUserDeck(initialCatalog);
+          setUserDeck([]);
+          setHasClaimedStarter(false);
         });
       }
       return;
@@ -65,14 +69,21 @@ export function useForgeWorkbench({
         const res = await fetch(`/api/cards?wallet=${encodeURIComponent(walletAddress)}`);
         if (res.ok) {
           const data = await res.json();
-          if (!ignore && data?.cards && Array.isArray(data.cards) && data.cards.length > 0) {
-            setUserDeck(data.cards);
+          if (!ignore) {
+            setUserDeck(Array.isArray(data?.cards) ? data.cards : []);
+            setHasClaimedStarter(Boolean(data?.hasClaimedStarter));
             return;
           }
         }
-        if (!ignore) setUserDeck(initialCatalog);
+        if (!ignore) {
+          setUserDeck([]);
+          setHasClaimedStarter(false);
+        }
       } catch {
-        if (!ignore) setUserDeck(initialCatalog);
+        if (!ignore) {
+          setUserDeck([]);
+          setHasClaimedStarter(false);
+        }
       } finally {
         if (!ignore) setIsLoadingInventory(false);
       }
@@ -83,7 +94,8 @@ export function useForgeWorkbench({
     return () => {
       ignore = true;
     };
-  }, [isConnected, walletAddress, initialCatalog]);
+  }, [isConnected, walletAddress]);
+
 
   // Exclusive Drag & Drop slot assignment
   const equipCardToSlot = useCallback(
@@ -103,6 +115,22 @@ export function useForgeWorkbench({
       }
     },
     [isForging, slotA, slotB]
+  );
+
+  // Quick 1-tap equip into first available altar slot
+  const autoEquipCard = useCallback(
+    (card: Card) => {
+      if (isForging) return;
+      if (!slotA) {
+        equipCardToSlot(card, "A");
+      } else if (!slotB) {
+        equipCardToSlot(card, "B");
+      } else {
+        // If both slots occupied, replace slot A
+        equipCardToSlot(card, "A");
+      }
+    },
+    [isForging, slotA, slotB, equipCardToSlot]
   );
 
   const removeCardFromSlot = useCallback(
@@ -166,13 +194,58 @@ export function useForgeWorkbench({
     setDetailsCard(null);
   }, []);
 
+  const claimStarterPack = useCallback(async () => {
+    if (isClaimingStarter) return;
+    setIsClaimingStarter(true);
+    try {
+      if (walletAddress) {
+        const res = await fetch("/api/cards/claim-starter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playerAddress: walletAddress }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.cards && Array.isArray(data.cards) && data.cards.length > 0) {
+            setUserDeck(data.cards);
+            setHasClaimedStarter(true);
+            setClaimToast("¡Has recibido 8 cartas comunes para tu mazo!");
+            setTimeout(() => setClaimToast(null), 4000);
+            return;
+          }
+        }
+      }
+
+      // Fallback local en memoria si no hay backend activo
+      setUserDeck((prev) => {
+        const nextId = prev.length > 0 ? Math.max(...prev.map((c) => Number(c.id) || 0)) + 1 : 100;
+        const newBatch = initialCatalog.map((c, idx) => ({
+          ...c,
+          id: nextId + idx,
+        }));
+        return [...newBatch, ...prev];
+      });
+      setHasClaimedStarter(true);
+      setClaimToast("¡Has recibido 8 cartas comunes para tu mazo!");
+      setTimeout(() => setClaimToast(null), 4000);
+    } catch (e) {
+      console.error("Error al reclamar starter pack:", e);
+    } finally {
+      setIsClaimingStarter(false);
+    }
+  }, [walletAddress, initialCatalog, isClaimingStarter]);
+
   return {
     activeTab,
     setActiveTab,
     slotA,
     slotB,
     userDeck,
+    hasClaimedStarter,
     isLoadingInventory,
+    isClaimingStarter,
+    claimToast,
+    claimStarterPack,
     isForging,
     forgeMessage,
     forgedResult,
@@ -182,6 +255,7 @@ export function useForgeWorkbench({
     inspectingCard,
     detailsCard,
     equipCardToSlot,
+    autoEquipCard,
     removeCardFromSlot,
     startForge,
     closeRevealModal,
@@ -190,4 +264,5 @@ export function useForgeWorkbench({
     setDetailsCard,
     closeDetailsCard,
   };
+
 }

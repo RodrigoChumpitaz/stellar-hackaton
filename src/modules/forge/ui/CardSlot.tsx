@@ -8,9 +8,16 @@ interface CardSlotProps {
   card: CardData | null;
   onRemove: () => void;
   isForging: boolean;
+  onDragEndToSlot?: (card: CardData, targetSlot: "A" | "B") => void;
 }
 
-export function CardSlot({ slotLabel, card, onRemove, isForging }: CardSlotProps) {
+export function CardSlot({
+  slotLabel,
+  card,
+  onRemove,
+  isForging,
+  onDragEndToSlot,
+}: CardSlotProps) {
   return (
     <div className="flex flex-col items-center gap-2 select-none">
       {/* Slot Header Label */}
@@ -32,20 +39,22 @@ export function CardSlot({ slotLabel, card, onRemove, isForging }: CardSlotProps
       {/* Pedestal Container with Drop-Slot Marker */}
       <div
         data-drop-slot={slotLabel}
-        className={`relative flex min-h-[290px] w-52 sm:w-60 items-center justify-center rounded-3xl border transition-all duration-300 p-3 shadow-2xl backdrop-blur-md ${
+        className={`relative flex min-h-[300px] w-52 sm:w-60 items-center justify-center rounded-3xl border transition-all duration-300 p-3 shadow-2xl backdrop-blur-md ${
           slotLabel === "A"
-            ? "border-red-500/30 bg-[#120e1c]/80 hover:border-red-500/60"
-            : "border-cyan-500/30 bg-[#0e1222]/80 hover:border-cyan-500/60"
+            ? "border-red-500/40 bg-[#140e1e]/90 hover:border-red-400/80 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
+            : "border-cyan-500/40 bg-[#0e1424]/90 hover:border-cyan-400/80 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
         }`}
       >
         {/* Glow ambient background behind slot */}
         <div
-          className={`absolute -inset-1 rounded-3xl opacity-30 blur-xl transition-all pointer-events-none ${
+          className={`absolute -inset-1 rounded-3xl opacity-40 blur-xl transition-all pointer-events-none ${
             card
               ? slotLabel === "A"
-                ? "bg-red-600/40"
-                : "bg-cyan-600/40"
-              : "bg-transparent"
+                ? "bg-red-600/50"
+                : "bg-cyan-600/50"
+              : slotLabel === "A"
+              ? "bg-red-950/20"
+              : "bg-cyan-950/20"
           }`}
         />
 
@@ -57,51 +66,57 @@ export function CardSlot({ slotLabel, card, onRemove, isForging }: CardSlotProps
                 isForging ? "animate-pulse scale-95 opacity-75 blur-[0.5px]" : ""
               }`}
             >
-              <CardItem card={card} size="md" />
+              <CardItem
+                card={card}
+                size="md"
+                draggable={!isForging}
+                onDragEndToDrawer={onRemove}
+                onDragEndToSlot={onDragEndToSlot}
+              />
             </div>
 
-            {/* Burn indicator and Remove button */}
+            {/* Discreet Deselect Helper without invasive text */}
             {!isForging && (
               <div className="flex items-center justify-between w-full px-1 pt-1">
-                <span className="text-[10px] text-red-400/90 font-medium flex items-center gap-1 bg-red-950/40 px-2 py-0.5 rounded-full border border-red-800/40">
-                  <FireIcon className="w-3 h-3 text-red-400" />
-                  <span>Se quemará</span>
+                <span className="text-[10px] text-zinc-400 text-center tracking-tight w-full">
+                  Arrastra abajo para devolver
                 </span>
                 <button
                   type="button"
-                  aria-label={`Quitar carta ${card?.name ?? ""} de ranura ${slotLabel}`}
+                  aria-label={`Desasignar carta ${card?.name ?? ""}`}
                   onClick={onRemove}
-                  className="flex items-center gap-1 rounded-lg bg-zinc-800/80 px-2 py-1 text-[11px] font-semibold text-zinc-300 hover:bg-red-900/60 hover:text-white transition-colors cursor-pointer"
+                  className="absolute -top-2 -right-2 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800/90 hover:bg-red-950 border border-zinc-700 hover:border-red-500/50 text-zinc-400 hover:text-white transition-all shadow-md active:scale-95 cursor-pointer text-xs font-bold"
+                  title="Desasignar del altar"
                 >
-                  <TrashIcon className="w-3 h-3" />
-                  <span>Quitar</span>
+                  ✕
                 </button>
               </div>
             )}
           </div>
+
         ) : (
-          /* Empty Slot Drop Target State */
+          /* Empty Slot Drop Target State with Activation Hover */
           <div
-            className={`flex flex-col items-center justify-center text-center p-6 border-2 border-dashed rounded-2xl w-full h-full min-h-[250px] transition-all duration-300 pointer-events-none ${
+            className={`group/slot flex flex-col items-center justify-center text-center p-6 border-2 border-dashed rounded-2xl w-full h-full min-h-[260px] transition-all duration-300 pointer-events-none ${
               slotLabel === "A"
-                ? "border-red-500/40 bg-red-950/10"
-                : "border-cyan-500/40 bg-cyan-950/10"
+                ? "border-red-500/50 bg-gradient-to-b from-red-950/30 via-red-950/10 to-transparent group-hover/slot:border-red-400 group-hover/slot:bg-red-950/40"
+                : "border-cyan-500/50 bg-gradient-to-b from-cyan-950/30 via-cyan-950/10 to-transparent group-hover/slot:border-cyan-400 group-hover/slot:bg-cyan-950/40"
             }`}
           >
             <div
-              className={`flex h-12 w-12 items-center justify-center rounded-2xl text-xl shadow-inner mb-3 transition-transform duration-300 ${
+              className={`flex h-14 w-14 items-center justify-center rounded-2xl text-2xl shadow-inner mb-3 transition-transform duration-300 group-hover/slot:scale-110 ${
                 slotLabel === "A"
-                  ? "bg-red-900/30 text-red-400 border border-red-500/30"
-                  : "bg-cyan-900/30 text-cyan-400 border border-cyan-500/30"
+                  ? "bg-red-900/40 text-red-400 border border-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse"
+                  : "bg-cyan-900/40 text-cyan-400 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse"
               }`}
             >
               ✦
             </div>
-            <p className="text-xs font-bold text-zinc-200">
+            <p className="text-xs font-bold text-white tracking-wide">
               Ranura {slotLabel} Vacía
             </p>
-            <p className="mt-1.5 text-[11px] text-zinc-400 max-w-[140px] leading-tight">
-              Arrastra una carta del mazo aquí para asignarla
+            <p className="mt-1.5 text-[11px] text-zinc-300 max-w-[145px] leading-snug">
+              Arrastra una runa del catálogo aquí
             </p>
           </div>
         )}
