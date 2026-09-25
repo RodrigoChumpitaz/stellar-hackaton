@@ -31,12 +31,8 @@ export function TopNav({
               <img
                 src="/cards/crystal-logo.png"
                 alt="Stellar Runes Logo"
-                className="h-6 w-6 sm:h-7 sm:w-7 object-contain drop-shadow-[0_0_8px_#00e5ff]"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = "none";
-                }}
+                className="h-7 w-7 sm:h-8 sm:w-8 object-contain drop-shadow-[0_0_10px_#00e5ff]"
               />
-              <span className="text-cyan-400 font-bold text-base sm:text-lg pointer-events-none">✦</span>
             </div>
             <div>
               <div className="flex items-center gap-2">
