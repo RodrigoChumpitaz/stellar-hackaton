@@ -59,7 +59,7 @@ export function buildCanonicalPayloadHash(params: BuildPayloadParams): Buffer {
     u64ToBytes(params.nonce),
   ]);
 
-  return hash(payload); // SHA-256 de 32 bytes -> esto es lo que se firma
+  return Buffer.from(hash(payload)); // SHA-256 de 32 bytes -> esto es lo que se firma
 }
 
 /**

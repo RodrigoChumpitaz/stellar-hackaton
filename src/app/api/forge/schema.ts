@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CardElementSchema, CardRaritySchema } from "@/lib/cards/schemas";
 
 // Input del endpoint POST /api/forge
 export const ForgeRequestSchema = z.object({
@@ -10,11 +11,11 @@ export type ForgeRequest = z.infer<typeof ForgeRequestSchema>;
 
 // Lo que Gemini debe devolver (Structured Output / response_schema)
 export const CardStatsSchema = z.object({
-  name: z.string().max(24),
-  element: z.enum(["VAPOR", "MAGMA", "ICE", "STORM", "MUD", "AETHER"]),
-  rarity: z.enum(["UNCOMMON", "RARE", "EPIC"]),
-  atk: z.number().int().min(1).max(12),
-  def: z.number().int().min(1).max(12),
+  name: z.string().max(120),
+  element: CardElementSchema,
+  rarity: CardRaritySchema,
+  atk: z.number().int().min(1).max(15),
+  def: z.number().int().min(1).max(15),
   passive_skill: z.string(),
   lore: z.string(),
 });

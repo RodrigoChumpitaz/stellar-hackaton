@@ -16,7 +16,7 @@ Stack: Next.js 16 (App Router, `src/`) · TypeScript · Supabase · Zod · Stell
 
 Antes de tocar datos o reglas del juego, lee las skills del proyecto:
 - `.agents/skills/data/SKILL.md` — la DB es read-model; quién escribe y cuándo.
-- `.agents/skills/standards/SKILL.md` — elementos, reglas de forja, stats, metadata, payload del oráculo.
+(`.agents/skills` es la fuente única de skills del repositorio para todas las IAs: Claude Code, OpenCode, ChatGPT / Codex, Cursor y Antigravity.)
 
 ## Estado de módulos
 | # | Módulo | Estado |
