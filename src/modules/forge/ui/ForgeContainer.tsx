@@ -21,6 +21,7 @@ import { OrientationAdvisor } from "@/shared/ui/layout/OrientationAdvisor";
 import { usePlayerProfile } from "@/modules/profile/ui/usePlayerProfile";
 import { OnboardingProfileModal } from "@/modules/profile/ui/OnboardingProfileModal";
 import { ArenaLobbyView } from "@/modules/arena/ui/ArenaLobbyView";
+import { ShopView } from "@/modules/shop";
 
 interface ForgeContainerProps {
   initialCatalog: Card[];
@@ -60,6 +61,7 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
     isClaimingStarter,
     claimToast,
     burnAndMintInBattle,
+    addPurchasedCards,
   } = useForgeWorkbench({
     initialCatalog,
     walletAddress,
@@ -212,6 +214,19 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
             onGoToDecks={() => setActiveTab("decks")}
             onOpenConnect={() => setIsConnectModalOpen(true)}
             onBurnAndMint={burnAndMintInBattle}
+          />
+        )}
+
+        {/* TAB 5: TIENDA TCG (BAZAR ASTRAL & PACK OPENING) */}
+        {activeTab === "shop" && (
+          <ShopView
+            xlmBalance={wallet.xlmBalance}
+            isConnected={wallet.isConnected}
+            onOpenConnect={() => setIsConnectModalOpen(true)}
+            onFundFriendbot={wallet.fundWithFriendbot}
+            onCardsPurchased={addPurchasedCards}
+            onGoToForge={() => setActiveTab("forge")}
+            onGoToDecks={() => setActiveTab("decks")}
           />
         )}
       </main>

@@ -4,7 +4,8 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { CardSlot } from "./CardSlot";
 import type { CardData } from "@/modules/cards/domain/types";
-import { forgeElement, calculateTierOutcome, rarityToTier } from "../domain/forge-rules";
+import { forgeElement, forgeRarity, calculateTierOutcome, rarityToTier, getTierIndex } from "../domain/forge-rules";
+import { CARD_TIERS } from "@/modules/cards/domain/constants";
 import { ELEMENT_THEMES, ElementIcon } from "@/modules/cards/ui/CardItem";
 import { ForgeIgniteButton } from "./ForgeIgniteButton";
 
@@ -56,12 +57,24 @@ export function ForgeTable({
   // Compute preview of derived element and alphanumeric Tier (30-tier system)
   const expectedElement =
     cardA && cardB ? forgeElement(cardA.element, cardB.element) : null;
+  const expectedRarity =
+    cardA && cardB ? forgeRarity(cardA.rarity, cardB.rarity) : null;
   const expectedTier =
-    cardA && cardB
-      ? calculateTierOutcome(
-          cardA.tier || rarityToTier(cardA.rarity),
-          cardB.tier || rarityToTier(cardB.rarity)
-        ).resultingTier
+    cardA && cardB && expectedRarity
+      ? CARD_TIERS[
+          Math.max(
+            getTierIndex(
+              calculateTierOutcome(
+                cardA.tier || rarityToTier(cardA.rarity),
+                cardB.tier || rarityToTier(cardB.rarity),
+                0.0 // Previsualizar proyección exitosa de síntesis
+              ).resultingTier
+            ),
+            getTierIndex(rarityToTier(expectedRarity)),
+            getTierIndex(cardA.tier || rarityToTier(cardA.rarity)),
+            getTierIndex(cardB.tier || rarityToTier(cardB.rarity))
+          )
+        ]
       : null;
 
   const expectedTheme = expectedElement

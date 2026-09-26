@@ -111,7 +111,7 @@ export function CardDetailsModal({ card, onClose }: CardDetailsModalProps) {
                   Poder Combina-Atómico y Balance
                 </span>
                 <span className="text-[11px] font-mono font-bold text-purple-300 bg-purple-950/60 border border-purple-500/30 px-2 py-0.5 rounded-full">
-                  Power Score: {card.power_score ?? Number((card.atk + card.def + (card.speed ?? 5) * 0.5).toFixed(1))}
+                  Power Score: {card.power_score ?? Math.round(card.atk * 3.5 + card.def * 3.2)}
                 </span>
               </div>
 
@@ -153,27 +153,6 @@ export function CardDetailsModal({ card, onClose }: CardDetailsModalProps) {
                     animate={{ width: `${defPercentage}%` }}
                     transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
                     className="h-full rounded-full bg-gradient-to-r from-cyan-600 to-blue-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"
-                  />
-                </div>
-              </div>
-
-              {/* Speed Bar */}
-              <div>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-                    <span className="text-xs">⚡</span>
-                    <span>Velocidad / Iniciativa (SPD)</span>
-                  </div>
-                  <span className="font-mono font-extrabold text-amber-300">
-                    {card.speed ?? 5} / 10
-                  </span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-zinc-800 overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, ((card.speed ?? 5) / 10) * 100)}%` }}
-                    transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-                    className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
                   />
                 </div>
               </div>

@@ -635,101 +635,41 @@ export function CardItem({
               </p>
             )}
 
-            {/* 4 Core Combat Stats (ATK, DEF, SPD, PWR) */}
-            <div className="grid grid-cols-4 gap-2 pt-1 border-t border-white/10">
+            {/* 3 Core Combat Stats (ATK, DEF, PWR) */}
+            <div className="grid grid-cols-3 gap-2.5 pt-1 border-t border-white/10">
               {/* ATK */}
-              <div className="flex flex-col items-center justify-center rounded-xl bg-red-950/80 border border-red-500/40 p-1.5 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+              <div className="flex flex-col items-center justify-center rounded-xl bg-red-950/80 border border-red-500/40 p-2 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
                 <div className="flex items-center gap-1 text-red-400 text-[10px] font-bold">
                   <SwordIcon className="w-3 h-3" />
                   <span>ATK</span>
                 </div>
-                <span className="font-mono text-sm sm:text-base font-black text-red-200">
+                <span className="font-mono text-base font-black text-red-200">
                   {card.atk}
                 </span>
               </div>
 
               {/* DEF */}
-              <div className="flex flex-col items-center justify-center rounded-xl bg-cyan-950/80 border border-cyan-500/40 p-1.5 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+              <div className="flex flex-col items-center justify-center rounded-xl bg-cyan-950/80 border border-cyan-500/40 p-2 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
                 <div className="flex items-center gap-1 text-cyan-400 text-[10px] font-bold">
                   <ShieldIcon className="w-3 h-3" />
                   <span>DEF</span>
                 </div>
-                <span className="font-mono text-sm sm:text-base font-black text-cyan-200">
+                <span className="font-mono text-base font-black text-cyan-200">
                   {card.def}
                 </span>
               </div>
 
-              {/* SPD */}
-              <div className="flex flex-col items-center justify-center rounded-xl bg-amber-950/80 border border-amber-500/40 p-1.5 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
-                <div className="flex items-center gap-1 text-amber-400 text-[10px] font-bold">
-                  <span className="text-xs">⚡</span>
-                  <span>SPD</span>
-                </div>
-                <span className="font-mono text-sm sm:text-base font-black text-amber-200">
-                  {card.speed ?? 5}
-                </span>
-              </div>
-
               {/* PWR */}
-              <div className="flex flex-col items-center justify-center rounded-xl bg-purple-950/80 border border-purple-500/40 p-1.5 shadow-[0_0_10px_rgba(168,85,247,0.2)]">
+              <div className="flex flex-col items-center justify-center rounded-xl bg-purple-950/80 border border-purple-500/40 p-2 shadow-[0_0_10px_rgba(168,85,247,0.2)]">
                 <div className="flex items-center gap-1 text-purple-400 text-[10px] font-bold">
                   <span className="text-xs">🏆</span>
                   <span>PWR</span>
                 </div>
-                <span className="font-mono text-sm sm:text-base font-black text-purple-200">
-                  {card.power_score ?? Number((card.atk + card.def + (card.speed ?? 5) * 0.5).toFixed(1))}
+                <span className="font-mono text-base font-black text-purple-200">
+                  {card.power_score ?? Math.round(card.atk * 3.5 + card.def * 3.2)}
                 </span>
               </div>
             </div>
-
-            {/* Tactical Skills Section (Pasiva izquierda, Activa derecha - solo si cuentan con estas) */}
-            {hasSkills && (
-              <div
-                className={`grid gap-2 pt-1 border-t border-white/10 ${
-                  hasPassive && hasActive ? "grid-cols-2" : "grid-cols-1"
-                }`}
-              >
-                {/* Passive Skill */}
-                {hasPassive && (
-                  <div className="rounded-xl border border-purple-500/30 bg-purple-950/40 p-2 text-left flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="text-[10px] sm:text-[11px] font-bold text-white flex items-center gap-1">
-                          <SparklesIcon className="w-3 h-3 text-purple-400 shrink-0" />
-                          <span className="truncate">{card.passive?.name || "Habilidad Pasiva"}</span>
-                        </span>
-                        <span className="rounded bg-zinc-800 px-1 py-0.2 text-[8px] sm:text-[9px] font-mono text-purple-300 border border-purple-500/40 shrink-0">
-                          {card.passive?.trigger || "PASIVA"}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-zinc-300 leading-snug">
-                        {card.passive?.description || card.passive_skill}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Active Skill */}
-                {hasActive && card.active && (
-                  <div className="rounded-xl border border-cyan-500/30 bg-cyan-950/40 p-2 text-left flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="text-[10px] sm:text-[11px] font-bold text-cyan-200 flex items-center gap-1">
-                          <span className="text-xs shrink-0">🔮</span>
-                          <span className="truncate">{card.active.name}</span>
-                        </span>
-                        <span className="rounded bg-cyan-900/50 px-1 py-0.2 text-[8px] sm:text-[9px] font-mono font-bold text-cyan-300 border border-cyan-500/40 shrink-0">
-                          {card.active.energy_cost} Éter
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-zinc-300 leading-snug">
-                        {card.active.description}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         ) : (
           <div className="rounded-xl border border-white/10 bg-black/75 p-2 backdrop-blur-md shadow-2xl flex flex-col gap-1.5">
@@ -753,10 +693,10 @@ export function CardItem({
             <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-white/10">
               {/* ATK Ruby Jewel */}
               <div
-                className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-red-950/80 border border-red-500/50 py-0.5 px-1 shadow-[0_0_8px_rgba(239,68,68,0.2)]"
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-red-950/80 border border-red-500/50 py-1 px-1.5 shadow-[0_0_8px_rgba(239,68,68,0.2)]"
                 title={`Ataque: ${card.atk}`}
               >
-                <SwordIcon className="w-3 h-3 text-red-400 shrink-0" />
+                <SwordIcon className="w-3.5 h-3.5 text-red-400 shrink-0" />
                 <span className="font-mono font-black text-red-100 text-xs sm:text-[13px] leading-none">
                   {card.atk}
                 </span>
@@ -764,25 +704,14 @@ export function CardItem({
 
               {/* DEF Sapphire Jewel */}
               <div
-                className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-cyan-950/80 border border-cyan-500/50 py-0.5 px-1 shadow-[0_0_8px_rgba(6,182,212,0.2)]"
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-cyan-950/80 border border-cyan-500/50 py-1 px-1.5 shadow-[0_0_8px_rgba(6,182,212,0.2)]"
                 title={`Defensa: ${card.def}`}
               >
-                <ShieldIcon className="w-3 h-3 text-cyan-400 shrink-0" />
+                <ShieldIcon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                 <span className="font-mono font-black text-cyan-100 text-xs sm:text-[13px] leading-none">
                   {card.def}
                 </span>
               </div>
-
-              {/* SPD Spark (if present) */}
-              {card.speed !== undefined && (
-                <div
-                  className="flex items-center justify-center gap-0.5 rounded-lg bg-amber-950/80 border border-amber-500/40 py-0.5 px-1.5 text-amber-300 font-mono text-[10px] font-bold"
-                  title={`Velocidad: ${card.speed}`}
-                >
-                  <span>⚡</span>
-                  <span>{card.speed}</span>
-                </div>
-              )}
             </div>
 
             {/* Optional Action Button for custom integrations (e.g. Deck Builder) */}

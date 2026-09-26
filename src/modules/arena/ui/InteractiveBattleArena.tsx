@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Card } from "@/modules/cards/domain/types";
 import { CardItem, ElementIcon, ELEMENT_THEMES } from "@/modules/cards/ui/CardItem";
 import { SwordIcon, ShieldIcon, ZapIcon, SparklesIcon, FireIcon } from "@/shared/ui/icons/Elements";
-import { forgeElement, calculateTierOutcome, rarityToTier } from "@/modules/forge/domain/forge-rules";
+import { forgeElement, forgeRarity, calculateTierOutcome, rarityToTier, getTierIndex } from "@/modules/forge/domain/forge-rules";
+import { CARD_TIERS } from "@/modules/cards/domain/constants";
 import { useInteractiveBattle } from "./hooks/useInteractiveBattle";
 import { COMBAT_CONFIG } from "../domain/combat-rules";
 
@@ -76,12 +77,24 @@ export function InteractiveBattleArena({
   // Outcome preview for tactical in-battle forge
   const expectedElement =
     forgeSlotA && forgeSlotB ? forgeElement(forgeSlotA.element, forgeSlotB.element) : null;
+  const expectedRarity =
+    forgeSlotA && forgeSlotB ? forgeRarity(forgeSlotA.rarity, forgeSlotB.rarity) : null;
   const expectedTier =
-    forgeSlotA && forgeSlotB
-      ? calculateTierOutcome(
-          forgeSlotA.tier || rarityToTier(forgeSlotA.rarity),
-          forgeSlotB.tier || rarityToTier(forgeSlotB.rarity)
-        ).resultingTier
+    forgeSlotA && forgeSlotB && expectedRarity
+      ? CARD_TIERS[
+          Math.max(
+            getTierIndex(
+              calculateTierOutcome(
+                forgeSlotA.tier || rarityToTier(forgeSlotA.rarity),
+                forgeSlotB.tier || rarityToTier(forgeSlotB.rarity),
+                0.0 // Previsualizar éxito de fusión en combate
+              ).resultingTier
+            ),
+            getTierIndex(rarityToTier(expectedRarity)),
+            getTierIndex(forgeSlotA.tier || rarityToTier(forgeSlotA.rarity)),
+            getTierIndex(forgeSlotB.tier || rarityToTier(forgeSlotB.rarity))
+          )
+        ]
       : null;
   const expectedTheme = expectedElement
     ? ELEMENT_THEMES[expectedElement] || ELEMENT_THEMES.AETHER

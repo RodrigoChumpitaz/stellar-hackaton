@@ -10,10 +10,12 @@ import {
   calculatePowerScore,
   clampStatsToBudget,
   rarityToTier,
+  tierToRarity,
   calculateTierOutcome,
   generateSkillsForCard,
+  getTierIndex,
 } from "../domain/forge-rules";
-import { STAT_BUDGET, ELEMENT_IMAGE, type CardElement } from "@/modules/cards/domain/constants";
+import { CARD_TIERS, STAT_BUDGET, ELEMENT_IMAGE, type CardElement } from "@/modules/cards/domain/constants";
 import type { Card, CardPassiveSkill, CardActiveSkill } from "@/modules/cards/domain/types";
 import type { ForgePreview } from "../domain/types";
 
@@ -175,7 +177,20 @@ export function synthesizeHybridCard(cardA: Card, cardB: Card, options?: Synthes
   const tierA = cardA.tier || rarityToTier(cardA.rarity);
   const tierB = cardB.tier || rarityToTier(cardB.rarity);
   const tierOutcome = calculateTierOutcome(tierA, tierB);
-  const derivedTier = tierOutcome.resultingTier;
+
+  // Armonización de Categoría & Protección Anti-Degradación:
+  // Si la síntesis promovió la categoría de rareza (ej. COMMON + COMMON -> UNCOMMON),
+  // el tier resultante asciende obligatoriamente para reflejar la nueva categoría (D).
+  // Además, el rango nunca degrada por debajo del máximo de las dos cartas invertidas.
+  const tierFromPromotedRarity = rarityToTier(derivedRarity);
+  const finalTierIdx = Math.max(
+    getTierIndex(tierOutcome.resultingTier),
+    getTierIndex(tierFromPromotedRarity),
+    getTierIndex(tierA),
+    getTierIndex(tierB)
+  );
+  const derivedTier = CARD_TIERS[finalTierIdx];
+  const finalRarity = tierToRarity(derivedTier);
 
   const parentSkillsA = cardA.skills || (cardA.passive_skill ? [cardA.passive_skill.split(":")[0]] : []);
   const parentSkillsB = cardB.skills || (cardB.passive_skill ? [cardB.passive_skill.split(":")[0]] : []);
@@ -195,7 +210,7 @@ export function synthesizeHybridCard(cardA: Card, cardB: Card, options?: Synthes
     ? options?.active || {
         name: `Pulso de ${derivedElement}`,
         description: `Libera una oleada elemental que inflige ${Math.max(1, Math.floor(targetAtk / 2))} de daño directo.`,
-        energy_cost: derivedRarity === "LEGENDARY" ? 3 : 2,
+        energy_cost: finalRarity === "LEGENDARY" ? 3 : 2,
       }
     : null;
 
@@ -203,7 +218,7 @@ export function synthesizeHybridCard(cardA: Card, cardB: Card, options?: Synthes
     id: `forged-${Date.now()}`,
     name: options?.name || defaultName,
     element: derivedElement,
-    rarity: derivedRarity,
+    rarity: finalRarity,
     tier: derivedTier,
     skills: generatedSkills.length > 0 ? generatedSkills : undefined,
     atk: targetAtk,

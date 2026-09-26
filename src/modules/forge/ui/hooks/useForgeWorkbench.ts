@@ -16,7 +16,7 @@ export function useForgeWorkbench({
   isConnected,
 }: UseForgeWorkbenchProps) {
   // Navigation & Tabs
-  const [activeTab, setActiveTab] = useState<"forge" | "decks" | "arena" | "rules">("forge");
+  const [activeTab, setActiveTab] = useState<"forge" | "decks" | "arena" | "shop" | "rules">("forge");
 
   // Slots State
   const [slotA, setSlotA] = useState<Card | null>(null);
@@ -251,6 +251,11 @@ export function useForgeWorkbench({
     });
   }, []);
 
+  // Handle adding newly purchased cards from the Shop directly to inventory
+  const addPurchasedCards = useCallback((newCards: Card[]) => {
+    setUserDeck((prev) => [...newCards, ...prev]);
+  }, []);
+
   return {
     activeTab,
     setActiveTab,
@@ -280,6 +285,6 @@ export function useForgeWorkbench({
     setDetailsCard,
     closeDetailsCard,
     burnAndMintInBattle,
+    addPurchasedCards,
   };
-
 }

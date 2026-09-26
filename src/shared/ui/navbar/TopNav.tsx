@@ -17,8 +17,8 @@ export function TopNav({
   playerAvatar,
   onOpenProfile,
 }: {
-  activeTab: "forge" | "decks" | "arena" | "rules";
-  onTabChange: (tab: "forge" | "decks" | "arena" | "rules") => void;
+  activeTab: "forge" | "decks" | "arena" | "shop" | "rules";
+  onTabChange: (tab: "forge" | "decks" | "arena" | "shop" | "rules") => void;
   isConnectModalOpen?: boolean;
   onConnectModalChange?: (open: boolean) => void;
   playerName?: string;
@@ -98,6 +98,18 @@ export function TopNav({
             >
               <span>⚔️</span>
               <span>Combate</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onTabChange("shop")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === "shop"
+                  ? "bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-extrabold shadow-[0_0_12px_rgba(245,158,11,0.4)]"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <span>🏪</span>
+              <span>Tienda</span>
             </button>
             <button
               type="button"
@@ -220,6 +232,16 @@ export function TopNav({
         >
           <span className="text-lg leading-none">⚔️</span>
           <span className="text-[9px]">Combate</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onTabChange("shop")}
+          className={`flex flex-col items-center gap-1 px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
+            activeTab === "shop" ? "text-amber-400 font-bold" : "text-zinc-500"
+          }`}
+        >
+          <span className="text-lg leading-none">🏪</span>
+          <span className="text-[9px]">Tienda</span>
         </button>
         <button
           type="button"
