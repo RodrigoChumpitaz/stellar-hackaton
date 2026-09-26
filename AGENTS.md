@@ -22,6 +22,7 @@ Antes de tocar datos o reglas del juego, lee las skills del proyecto:
   - `docs/MODULE_FORGE.md` — Matriz de fusión determinista, cristal WebGL Three.js y Workbench.
   - `docs/MODULE_ORACLE.md` — Endpoint `/api/forge`, Gemini structured outputs y firma binaria Ed25519.
   - `docs/MODULE_WALLET.md` — Stellar Wallets Kit, Freighter y preparación de transacciones.
+  - `docs/MODULE_SOROBAN.md` — Contrato Soroban en Rust, arquitectura atómica Burn & Mint y despliegue Testnet.
 (`.agents/skills` es la fuente única de skills del repositorio para todas las IAs: Claude Code, OpenCode, ChatGPT / Codex, Cursor y Antigravity.)
 
 ## Estado de módulos
@@ -30,8 +31,8 @@ Antes de tocar datos o reglas del juego, lee las skills del proyecto:
 | 1 | Catálogo & base de datos | ✅ Hecho: esquema aplicado en Supabase, catálogo sembrado, RLS verificado |
 | 2 | Conexión de billetera (Stellar Wallets Kit / Freighter) | ✅ Hecho: integrado en `src/modules/wallet/` y `TopNav` |
 | 3 | UI de selección y forja | ✅ Hecho: Workbench con Three.js WebGL, modales 3D, gestos e inventario reactivo |
-| 4 | Oráculo: Gemini + firma Ed25519 (`/api/forge`) | ✅ Hecho: `/api/forge` con Gemini JSON Schema, fallback local y firma canónica de 152 bytes |
-| 5 | Contrato Soroban: `claim_starter` + `forge` (burn & mint atómico) | ⏳ Pendiente (Rust / Soroban SDK) |
+| 4 | Oráculo: Gemini + firma Ed25519 (`/api/forge`) | ✅ Hecho: `/api/forge` con Gemini JSON Schema, fallback local y firma canónica de 160 bytes |
+| 5 | Contrato Soroban: `claim_starter` + `forge` (burn & mint atómico) | ✅ Hecho: `contracts/forge_contract/`, 7 tests unitarios ok, desplegado en Testnet (`CAXAZJAJXA4CU2GYK3TRIGGDZTOCJGNX2FFC7CZEITN2TG7IPGSX7NVD`) |
 | 6 | Pipeline: simulate → assemble → sign → send → poll + sync DB | ⏳ Pendiente (Integración final frontend ↔ contrato) |
 
 ## Arquitectura y Bounded Contexts (`src/`)

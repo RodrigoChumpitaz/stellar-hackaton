@@ -14,7 +14,10 @@
     "db:seed": "tsx --env-file=.env.local scripts/seed-catalog.ts",
     "db:types": "npx supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" --schema public > src/types/database.types.ts",
     "wallet:typecheck": "node node_modules\\deno\\bin.cjs check --sloppy-imports src/index.ts",
-    "typecheck": "next typegen && tsc --noEmit && npm run wallet:typecheck"
+    "typecheck": "next typegen && tsc --noEmit && npm run wallet:typecheck",
+    "contract:build": "stellar contract build --manifest-path contracts/forge_contract/Cargo.toml",
+    "contract:test": "cargo test --manifest-path contracts/forge_contract/Cargo.toml",
+    "contract:deploy": "bash scripts/deploy-contract.sh"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
