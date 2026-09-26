@@ -23,6 +23,7 @@ Antes de tocar datos o reglas del juego, lee las skills del proyecto:
   - `docs/MODULE_ORACLE.md` — Endpoint `/api/forge`, Gemini structured outputs y firma binaria Ed25519.
   - `docs/MODULE_WALLET.md` — Stellar Wallets Kit, Freighter y preparación de transacciones.
   - `docs/MODULE_SOROBAN.md` — Contrato Soroban en Rust, arquitectura atómica Burn & Mint y despliegue Testnet.
+  - `docs/MODULE_PIPELINE.md` — Pipeline de ejecución end-to-end (simulación pre-flight, firma multi-wallet, polling Testnet y sincronización Supabase).
 (`.agents/skills` es la fuente única de skills del repositorio para todas las IAs: Claude Code, OpenCode, ChatGPT / Codex, Cursor y Antigravity.)
 
 ## Estado de módulos
@@ -33,7 +34,7 @@ Antes de tocar datos o reglas del juego, lee las skills del proyecto:
 | 3 | UI de selección y forja | ✅ Hecho: Workbench con Three.js WebGL, modales 3D, gestos e inventario reactivo |
 | 4 | Oráculo: Gemini + firma Ed25519 (`/api/forge`) | ✅ Hecho: `/api/forge` con Gemini JSON Schema, fallback local y firma canónica de 160 bytes |
 | 5 | Contrato Soroban: `claim_starter` + `forge` (burn & mint atómico) | ✅ Hecho: `contracts/forge_contract/`, 7 tests unitarios ok, desplegado en Testnet (`CAXAZJAJXA4CU2GYK3TRIGGDZTOCJGNX2FFC7CZEITN2TG7IPGSX7NVD`) |
-| 6 | Pipeline: simulate → assemble → sign → send → poll + sync DB | ⏳ Pendiente (Integración final frontend ↔ contrato) |
+| 6 | Pipeline: simulate → assemble → sign → send → poll + sync DB | ✅ Hecho: `forge-pipeline.ts`, `/api/sync-forge`, 28 tests vitest ok, integración total UI ↔ Contrato |
 
 ## Arquitectura y Bounded Contexts (`src/`)
 El proyecto sigue **Clean Architecture pura** con Bounded Contexts:

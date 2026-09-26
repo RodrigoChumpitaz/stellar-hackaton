@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
         def: c.def,
         image_url: c.metadata_uri || c.image_url || "/cards/crystal-logo.png",
         description: c.lore || c.passive_skill || "",
+        token_id: c.token_id,
       }));
       return NextResponse.json({
         success: false,
@@ -85,6 +86,7 @@ export async function POST(request: NextRequest) {
       def: c.def,
       image_url: c.metadata_uri || c.image_url || "/cards/crystal-logo.png",
       description: c.lore || c.passive_skill || "",
+      token_id: c.token_id,
     }));
 
     return NextResponse.json({ success: true, cards });
