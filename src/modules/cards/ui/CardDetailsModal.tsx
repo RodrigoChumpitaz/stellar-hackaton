@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { CardData } from "../domain/types";
 import type { CardRarity } from "../domain/constants";
-import { ELEMENT_THEMES, RARITY_LABELS, ElementIcon } from "./CardItem";
+import { ELEMENT_THEMES, ElementIcon, getTierBadgeStyle } from "./CardItem";
+import { rarityToTier } from "@/modules/forge/domain/forge-rules";
 import { SwordIcon, ShieldIcon, SparklesIcon, ZapIcon } from "@/shared/ui/icons/Elements";
 
 interface CardDetailsModalProps {
@@ -25,7 +26,8 @@ export function CardDetailsModal({ card, onClose }: CardDetailsModalProps) {
   if (!card) return null;
 
   const theme = ELEMENT_THEMES[card.element] || ELEMENT_THEMES.AETHER;
-  const rarity = RARITY_LABELS[card.rarity as CardRarity] || RARITY_LABELS.COMMON;
+  const displayTier = card.tier || rarityToTier(card.rarity as CardRarity);
+  const tierStyle = getTierBadgeStyle(displayTier);
   const maxStat = 12; // Base scale reference
 
   const atkPercentage = Math.min(100, Math.round((card.atk / maxStat) * 100));
@@ -66,9 +68,9 @@ export function CardDetailsModal({ card, onClose }: CardDetailsModalProps) {
                     {card.name}
                   </h3>
                   <span
-                    className={`rounded-md px-2 py-0.5 text-[10px] font-bold border ${rarity.color}`}
+                    className={`rounded-md px-2.5 py-0.5 text-[11px] font-black border ${tierStyle.badge} ${tierStyle.border}`}
                   >
-                    {rarity.label}
+                    Rango {displayTier}
                   </span>
                 </div>
                 <p className="text-xs text-zinc-400 font-mono mt-0.5">
@@ -177,45 +179,60 @@ export function CardDetailsModal({ card, onClose }: CardDetailsModalProps) {
               </div>
             </div>
 
-            {/* Passive Skill */}
-            <div className="rounded-2xl bg-purple-950/20 border border-purple-500/30 p-3.5 flex items-start gap-3">
-              <div className="p-2 rounded-xl bg-purple-900/40 border border-purple-500/40 text-purple-300">
-                <ZapIcon className="w-4 h-4" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-purple-300 block">
-                    {card.passive?.name || "Habilidad Pasiva"}
-                  </span>
-                  <span className="rounded bg-purple-900/40 border border-purple-500/40 px-1.5 py-0.5 text-[9px] font-mono text-purple-300">
-                    {card.passive?.trigger || "PASIVA"}
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-300 mt-0.5 leading-snug">
-                  {card.passive?.description || card.passive_skill || "Resonancia Elemental: Aumenta la efectividad de combate frente a elementos opuestos."}
-                </p>
-              </div>
-            </div>
-
-            {/* Active Skill */}
-            {card.active && (
-              <div className="rounded-2xl bg-cyan-950/20 border border-cyan-500/30 p-3.5 flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-cyan-900/40 border border-cyan-500/40 text-cyan-300">
-                  <span className="text-sm">🔮</span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-cyan-300 block">
-                      {card.active.name}
-                    </span>
-                    <span className="rounded bg-cyan-900/40 border border-cyan-500/40 px-1.5 py-0.5 text-[9px] font-mono text-cyan-300">
-                      Coste: {card.active.energy_cost} Éter
-                    </span>
+            {/* Tactical Skills Section (Passive Left, Active Right, Hidden if none) */}
+            {(card.passive || card.passive_skill || card.active) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Passive Skill (Left) */}
+                {card.passive || card.passive_skill ? (
+                  <div
+                    className={`rounded-2xl bg-purple-950/30 border border-purple-500/30 p-3 flex items-start gap-2.5 ${
+                      !card.active ? "sm:col-span-2" : ""
+                    }`}
+                  >
+                    <div className="p-1.5 rounded-xl bg-purple-900/40 border border-purple-500/40 text-purple-300 shrink-0">
+                      <ZapIcon className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-purple-300 truncate">
+                          {card.passive?.name || "Habilidad Pasiva"}
+                        </span>
+                        <span className="rounded bg-purple-900/40 border border-purple-500/40 px-1.5 py-0.5 text-[8px] font-mono text-purple-300 shrink-0">
+                          {card.passive?.trigger || "PASIVA"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-300 mt-0.5 leading-snug">
+                        {card.passive?.description || card.passive_skill}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-zinc-300 mt-0.5 leading-snug">
-                    {card.active.description}
-                  </p>
-                </div>
+                ) : null}
+
+                {/* Active Skill (Right) */}
+                {card.active ? (
+                  <div
+                    className={`rounded-2xl bg-cyan-950/30 border border-cyan-500/30 p-3 flex items-start gap-2.5 ${
+                      !(card.passive || card.passive_skill) ? "sm:col-span-2" : ""
+                    }`}
+                  >
+                    <div className="p-1.5 rounded-xl bg-cyan-900/40 border border-cyan-500/40 text-cyan-300 shrink-0">
+                      <span className="text-xs">🔮</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-cyan-300 truncate">
+                          {card.active.name}
+                        </span>
+                        <span className="rounded bg-cyan-900/40 border border-cyan-500/40 px-1.5 py-0.5 text-[8px] font-mono text-cyan-300 shrink-0">
+                          Coste: {card.active.energy_cost} Éter
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-300 mt-0.5 leading-snug">
+                        {card.active.description}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
 

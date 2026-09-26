@@ -4,15 +4,8 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CardItem, type CardData } from "@/modules/cards/ui/CardItem";
 import { BASE_ELEMENTS } from "@/modules/cards/domain/constants";
-import {
-  FireIcon,
-  WaterIcon,
-  EarthIcon,
-  AirIcon,
-  SparklesIcon,
-  SwordIcon,
-  ShieldIcon,
-} from "@/shared/ui/icons/Elements";
+import { ElementFilterBar, type FilterElement } from "@/modules/cards/ui/ElementFilterBar";
+import { CatalogGuideModal } from "@/modules/cards/ui/CatalogGuideModal";
 
 
 interface InventoryDrawerProps {
@@ -27,6 +20,9 @@ interface InventoryDrawerProps {
   isClaimingStarter?: boolean;
   claimToast?: string | null;
   hasClaimedStarter?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  className?: string;
 }
 
 export function InventoryDrawer({
@@ -41,6 +37,9 @@ export function InventoryDrawer({
   isClaimingStarter,
   claimToast,
   hasClaimedStarter = false,
+  onDragStart,
+  onDragEnd,
+  className = "",
 }: InventoryDrawerProps) {
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
 
@@ -107,7 +106,7 @@ export function InventoryDrawer({
     <section
       data-drop-zone="inventory"
       id="inventory-drawer"
-      className="relative w-full rounded-3xl border border-zinc-800/80 bg-[#0E1122]/90 p-4 sm:p-6 shadow-2xl backdrop-blur-xl"
+      className={`relative ${className || "z-20"} w-full rounded-3xl border border-zinc-800/80 bg-[#0E1122]/90 p-4 sm:p-6 shadow-2xl backdrop-blur-xl transition-all duration-200`}
     >
       {/* Top Bar: Title, Count, Info Button & Responsive Filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3">
@@ -152,162 +151,20 @@ export function InventoryDrawer({
           </div>
         )}
 
-        {/* Filter Pills with Horizontal Smooth Scrolling on Mobile */}
-        <div className="w-full sm:w-auto overflow-x-auto no-scrollbar py-1 -my-1">
-          <div className="flex items-center gap-1.5 min-w-max">
-            <button
-              type="button"
-              onClick={() => setActiveFilter("ALL")}
-              className={`rounded-xl px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${
-                activeFilter === "ALL"
-                  ? "bg-cyan-500 text-black font-bold shadow-[0_0_10px_rgba(0,229,255,0.4)]"
-                  : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
-              }`}
-            >
-              <span>Todos</span>
-              <span className="text-[10px] opacity-75">({elementCounts.ALL})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter("FIRE")}
-              className={`flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
-                activeFilter === "FIRE"
-                  ? "bg-red-500 text-white font-bold shadow-[0_0_10px_rgba(239,68,68,0.4)]"
-                  : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
-              }`}
-            >
-              <FireIcon className="w-3 h-3 text-red-400" />
-              <span>Fuego</span>
-              <span className="text-[10px] opacity-75">({elementCounts.FIRE})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter("WATER")}
-              className={`flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
-                activeFilter === "WATER"
-                  ? "bg-cyan-500 text-black font-bold shadow-[0_0_10px_rgba(6,182,212,0.4)]"
-                  : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
-              }`}
-            >
-              <WaterIcon className="w-3 h-3 text-cyan-400" />
-              <span>Agua</span>
-              <span className="text-[10px] opacity-75">({elementCounts.WATER})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter("EARTH")}
-              className={`flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
-                activeFilter === "EARTH"
-                  ? "bg-emerald-500 text-black font-bold shadow-[0_0_10px_rgba(16,185,129,0.4)]"
-                  : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
-              }`}
-            >
-              <EarthIcon className="w-3 h-3 text-emerald-400" />
-              <span>Tierra</span>
-              <span className="text-[10px] opacity-75">({elementCounts.EARTH})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter("AIR")}
-              className={`flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
-                activeFilter === "AIR"
-                  ? "bg-amber-400 text-black font-bold shadow-[0_0_10px_rgba(251,191,36,0.4)]"
-                  : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
-              }`}
-            >
-              <AirIcon className="w-3 h-3 text-amber-400" />
-              <span>Viento</span>
-              <span className="text-[10px] opacity-75">({elementCounts.AIR})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter("HYBRIDS")}
-              className={`flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
-                activeFilter === "HYBRIDS"
-                  ? "bg-purple-500 text-white font-bold shadow-[0_0_10px_rgba(168,85,247,0.4)]"
-                  : "bg-zinc-900/90 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
-              }`}
-            >
-              <SparklesIcon className="w-3 h-3 text-purple-300" />
-              <span>Híbridos</span>
-              <span className="text-[10px] opacity-75">({elementCounts.HYBRIDS})</span>
-            </button>
-          </div>
-        </div>
+        {/* Filter Pills */}
+        <ElementFilterBar
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+          elementCounts={elementCounts}
+        />
       </div>
 
       {/* Info Modal / Guía del Catálogo */}
-      <AnimatePresence>
-        {showInfoModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-md rounded-3xl border border-zinc-800 bg-[#0E1122] p-6 shadow-2xl"
-            >
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">📖</span>
-                  <h4 className="font-bold text-white text-base">Guía del Catálogo de Runas</h4>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowInfoModal(false)}
-                  className="h-7 w-7 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white text-sm cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="mt-4 flex flex-col gap-3.5 text-xs text-zinc-300">
-                <div className="flex items-start gap-2.5">
-                  <span className="text-cyan-400 font-bold text-sm">👆</span>
-                  <div>
-                    <strong className="text-white block">Tocar carta:</strong>
-                    Abre la inspección a pantalla completa con ilustración expandida y lore elemental.
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5">
-                  <span className="text-purple-400 font-bold text-sm">⏳</span>
-                  <div>
-                    <strong className="text-white block">Mantener presionado (0.5s):</strong>
-                    Despliega las estadísticas avanzadas, habilidades pasivas/activas y puntuación de poder.
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5">
-                  <span className="text-amber-400 font-bold text-sm">🧪</span>
-                  <div>
-                    <strong className="text-white block">Arrastrar a la Forja:</strong>
-                    Coloca dos cartas en los pedestales A y B para fusionar un nuevo híbrido on-chain.
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-zinc-800/80 grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="p-2 rounded-xl bg-red-950/30 border border-red-500/30">
-                    <span className="text-red-400 font-bold block">⚔️ Ataque (ATK)</span>
-                    Daño directo en combate contra adversarios.
-                  </div>
-                  <div className="p-2 rounded-xl bg-cyan-950/30 border border-cyan-500/30">
-                    <span className="text-cyan-400 font-bold block">🛡️ Defensa (DEF)</span>
-                    Capacidad de absorción y resistencia de la runa.
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowInfoModal(false)}
-                className="mt-5 w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-black font-extrabold text-xs cursor-pointer shadow-md hover:brightness-110 active:scale-95 transition-all"
-              >
-                Entendido
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <CatalogGuideModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        destinationLabel="a la Forja para sintetizar un nuevo híbrido"
+      />
 
       {/* Cards Grid with Staggered Framer Motion Animation */}
       <div className="pt-6">
@@ -395,6 +252,8 @@ export function InventoryDrawer({
                     draggable={true}
                     onQuickTap={onQuickTap}
                     onLongPress={onLongPress}
+                    onDragStart={onDragStart}
+                    onDragEnd={onDragEnd}
                     onDragEndToSlot={onDragEndToSlot}
                     size="sm"
                   />

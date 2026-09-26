@@ -7,6 +7,11 @@ import {
   calculateProgressiveStat,
   calculatePowerScore,
   clampStatsToBudget,
+  calculateTierSuccessRate,
+  calculateTierOutcome,
+  calculateSkillChance,
+  synthesizeAlchemicalElement,
+  getTierIndex,
 } from "./forge-rules";
 import { GeneratedStatsSchema } from "./schemas";
 
@@ -83,6 +88,77 @@ describe("stats", () => {
     const clamped = clampStatsToBudget(99, 99, "COMMON");
     expect(clamped.atk + clamped.def).toBeLessThanOrEqual(7);
     expect(clamped.atk + clamped.def).toBeGreaterThanOrEqual(6);
+  });
+});
+
+describe("30-Tier Alphanumeric Rank System (F- to L+)", () => {
+  it("resuelve tasas de éxito exactas para cartas del mismo rango", () => {
+    const rateFMinus = calculateTierSuccessRate("F-", "F-");
+    expect(rateFMinus.successRate).toBeCloseTo(0.60001, 4);
+
+    const rateF = calculateTierSuccessRate("F", "F");
+    expect(rateF.successRate).toBeCloseTo(0.55001, 4);
+
+    const rateE = calculateTierSuccessRate("E", "E");
+    expect(rateE.successRate).toBeCloseTo(0.44001, 4);
+
+    const rateLPlus = calculateTierSuccessRate("L+", "L+");
+    expect(rateLPlus.successRate).toBeCloseTo(0.00001, 5);
+  });
+
+  it("penaliza probabilidad cuando hay diferencia de rangos (gap penalty)", () => {
+    const sameRate = calculateTierSuccessRate("C", "C").successRate;
+    const diffRate = calculateTierSuccessRate("C", "F-").successRate;
+    // La brecha (gap) reduce la probabilidad de éxito
+    expect(diffRate).toBeLessThan(sameRate);
+  });
+
+  it("en caso de fracaso con gap, puede degradar a un rango menor que el máximo", () => {
+    // roll = 1.0 (fracaso forzado)
+    const outcome = calculateTierOutcome("A", "F-", 1.0);
+    expect(outcome.isSuccess).toBe(false);
+    expect(getTierIndex(outcome.resultingTier)).toBeLessThan(getTierIndex("A"));
+  });
+
+  it("en caso de éxito con mismo rango, asciende al rango superior", () => {
+    // roll = 0.0 (éxito garantizado)
+    const outcome = calculateTierOutcome("F-", "F-", 0.0);
+    expect(outcome.isSuccess).toBe(true);
+    expect(outcome.resultingTier).toBe("F");
+  });
+});
+
+describe("Síntesis Alquímica y Elementos Divinos", () => {
+  it("EARTH + EARTH genera evolución alquímica (STONK)", () => {
+    expect(synthesizeAlchemicalElement("EARTH", "EARTH")).toBe("STONK");
+    expect(synthesizeAlchemicalElement("FIRE", "FIRE")).toBe("INFERNO");
+  });
+
+  it("Cartas de rango L generan elementos cósmicos divinos", () => {
+    const cosmic = synthesizeAlchemicalElement("FIRE", "WATER", "L");
+    expect(["AETHER", "CELESTIAL", "VOID", "CHRONOS", "COSMOS"]).toContain(cosmic);
+  });
+});
+
+describe("Sistema Progresivo de Habilidades", () => {
+  it("cartas F no tienen probabilidad base de habilidad", () => {
+    const { totalChance } = calculateSkillChance("F-", 0);
+    expect(totalChance).toBe(0);
+  });
+
+  it("cartas a partir de rango E desbloquean probabilidad de habilidad oficial", () => {
+    const chanceE = calculateSkillChance("E", 0);
+    expect(chanceE.baseChance).toBeCloseTo(0.059, 3);
+
+    const chanceLPlus = calculateSkillChance("L+", 0);
+    expect(chanceLPlus.baseChance).toBeCloseTo(0.899, 3);
+  });
+
+  it("cada habilidad paterna otorga un bono de +5%", () => {
+    const chanceWithoutParents = calculateSkillChance("D", 0).totalChance;
+    const chanceWith2Parents = calculateSkillChance("D", 2).totalChance;
+    // 2 habilidades paternas = +10% (0.10)
+    expect(chanceWith2Parents).toBeCloseTo(chanceWithoutParents + 0.10, 3);
   });
 });
 

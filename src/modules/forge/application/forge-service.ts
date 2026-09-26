@@ -9,6 +9,9 @@ import {
   calculateProgressiveStat,
   calculatePowerScore,
   clampStatsToBudget,
+  rarityToTier,
+  calculateTierOutcome,
+  generateSkillsForCard,
 } from "../domain/forge-rules";
 import { STAT_BUDGET, ELEMENT_IMAGE, type CardElement } from "@/modules/cards/domain/constants";
 import type { Card, CardPassiveSkill, CardActiveSkill } from "@/modules/cards/domain/types";
@@ -104,7 +107,7 @@ export function synthesizeHybridCard(cardA: Card, cardB: Card, options?: Synthes
       : 5;
   const speed = options?.speed ?? defaultSpeed;
 
-  // Pasivas tácticas por elemento híbrido
+  // Habilidades tácticas por elemento híbrido
   const ELEMENT_PASSIVES: Record<string, CardPassiveSkill> = {
     STEAM: {
       name: "Manto de Niebla",
@@ -143,20 +146,6 @@ export function synthesizeHybridCard(cardA: Card, cardB: Card, options?: Synthes
     },
   };
 
-  const structuredPassive =
-    options?.passive ||
-    ELEMENT_PASSIVES[derivedElement] || {
-      name: "Resonancia Elemental",
-      description: "Aumenta la efectividad de los atributos en un 10% frente a elementos opuestos.",
-      trigger: "STATIC",
-    };
-
-  const structuredActive: CardActiveSkill = options?.active || {
-    name: `Pulso de ${derivedElement}`,
-    description: `Libera una oleada elemental que inflige ${Math.max(1, Math.floor(targetAtk / 2))} de daño directo.`,
-    energy_cost: derivedRarity === "LEGENDARY" ? 3 : 2,
-  };
-
   const powerScore = calculatePowerScore(targetAtk, targetDef, speed, prestigeLevel);
 
   // Nombre canónico por defecto si no es provisto por el oráculo
@@ -182,11 +171,41 @@ export function synthesizeHybridCard(cardA: Card, cardB: Card, options?: Synthes
       ? "/cards/primordial-vapor.png"
       : ELEMENT_IMAGE[derivedElement as CardElement] || null;
 
+  // Cálculo canónico de rango (30 Tiers F- a L+) y habilidades progresivas
+  const tierA = cardA.tier || rarityToTier(cardA.rarity);
+  const tierB = cardB.tier || rarityToTier(cardB.rarity);
+  const tierOutcome = calculateTierOutcome(tierA, tierB);
+  const derivedTier = tierOutcome.resultingTier;
+
+  const parentSkillsA = cardA.skills || (cardA.passive_skill ? [cardA.passive_skill.split(":")[0]] : []);
+  const parentSkillsB = cardB.skills || (cardB.passive_skill ? [cardB.passive_skill.split(":")[0]] : []);
+  const generatedSkills = generateSkillsForCard(derivedElement, derivedTier, parentSkillsA, parentSkillsB);
+  const hasSkills = generatedSkills.length > 0 || Boolean(options?.passive) || Boolean(options?.active) || Boolean(options?.passive_skill);
+
+  const structuredPassive: CardPassiveSkill | null = hasSkills
+    ? options?.passive ||
+      ELEMENT_PASSIVES[derivedElement] || {
+        name: generatedSkills[0] || "Resonancia Elemental",
+        description: "Aumenta la efectividad de los atributos en un 10% frente a elementos opuestos.",
+        trigger: "STATIC",
+      }
+    : null;
+
+  const structuredActive: CardActiveSkill | null = hasSkills
+    ? options?.active || {
+        name: `Pulso de ${derivedElement}`,
+        description: `Libera una oleada elemental que inflige ${Math.max(1, Math.floor(targetAtk / 2))} de daño directo.`,
+        energy_cost: derivedRarity === "LEGENDARY" ? 3 : 2,
+      }
+    : null;
+
   return {
     id: `forged-${Date.now()}`,
     name: options?.name || defaultName,
     element: derivedElement,
     rarity: derivedRarity,
+    tier: derivedTier,
+    skills: generatedSkills.length > 0 ? generatedSkills : undefined,
     atk: targetAtk,
     def: targetDef,
     speed,
@@ -194,7 +213,7 @@ export function synthesizeHybridCard(cardA: Card, cardB: Card, options?: Synthes
     prestige_level: prestigeLevel,
     image_url: options?.image_url !== undefined ? options.image_url : defaultImageUrl,
     lore: options?.lore || defaultLore,
-    passive_skill: options?.passive_skill || `${structuredPassive.name}: ${structuredPassive.description}`,
+    passive_skill: hasSkills && structuredPassive ? (options?.passive_skill || `${structuredPassive.name}: ${structuredPassive.description}`) : undefined,
     passive: structuredPassive,
     active: structuredActive,
     token_id: options?.token_id ?? BigInt(Date.now() % 10000),
