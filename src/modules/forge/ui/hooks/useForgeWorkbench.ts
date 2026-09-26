@@ -16,7 +16,7 @@ export function useForgeWorkbench({
   isConnected,
 }: UseForgeWorkbenchProps) {
   // Navigation & Tabs
-  const [activeTab, setActiveTab] = useState<"forge" | "decks" | "rules">("forge");
+  const [activeTab, setActiveTab] = useState<"forge" | "decks" | "arena" | "rules">("forge");
 
   // Slots State
   const [slotA, setSlotA] = useState<Card | null>(null);
@@ -243,6 +243,14 @@ export function useForgeWorkbench({
     }
   }, [walletAddress, initialCatalog, isClaimingStarter]);
 
+  // Handle In-Battle Burning and Minting: permanently burns the 2 cards and adds the minted hybrid
+  const burnAndMintInBattle = useCallback((burnedA: Card, burnedB: Card, mintedCard: Card) => {
+    setUserDeck((prev) => {
+      const filtered = prev.filter((c) => c.id !== burnedA.id && c.id !== burnedB.id);
+      return [mintedCard, ...filtered];
+    });
+  }, []);
+
   return {
     activeTab,
     setActiveTab,
@@ -271,6 +279,7 @@ export function useForgeWorkbench({
     closeInspectingCard,
     setDetailsCard,
     closeDetailsCard,
+    burnAndMintInBattle,
   };
 
 }

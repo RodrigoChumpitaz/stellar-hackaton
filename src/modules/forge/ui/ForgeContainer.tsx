@@ -17,6 +17,10 @@ import { RevealModal } from "./RevealModal";
 import { CardInspectModal } from "@/modules/cards/ui/CardInspectModal";
 import { CardDetailsModal } from "@/modules/cards/ui/CardDetailsModal";
 import { DeckBuilderView } from "@/modules/deck/ui/DeckBuilderView";
+import { OrientationAdvisor } from "@/shared/ui/layout/OrientationAdvisor";
+import { usePlayerProfile } from "@/modules/profile/ui/usePlayerProfile";
+import { OnboardingProfileModal } from "@/modules/profile/ui/OnboardingProfileModal";
+import { ArenaLobbyView } from "@/modules/arena/ui/ArenaLobbyView";
 
 interface ForgeContainerProps {
   initialCatalog: Card[];
@@ -25,6 +29,8 @@ interface ForgeContainerProps {
 export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
   const wallet = useWallet();
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+
+  const walletAddress = wallet.publicKey || wallet.smartAccountId;
 
   const {
     activeTab,
@@ -53,22 +59,41 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
     claimStarterPack,
     isClaimingStarter,
     claimToast,
+    burnAndMintInBattle,
   } = useForgeWorkbench({
     initialCatalog,
-    walletAddress: wallet.publicKey || wallet.smartAccountId,
+    walletAddress,
     isConnected: wallet.isConnected,
   });
 
+  const {
+    profile,
+    activeAvatar,
+    saveProfile,
+    isOnboardingModalOpen,
+    closeOnboardingModal,
+  } = usePlayerProfile({
+    walletAddress,
+    isConnected: wallet.isConnected,
+  });
+
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [activeDragSection, setActiveDragSection] = useState<"forge" | "drawer" | null>(null);
 
   return (
     <div className="min-h-screen w-full bg-[#0A0C18] flex flex-col">
+      {/* Mobile Orientation Advisor */}
+      <OrientationAdvisor />
+
       {/* Top Navigation */}
       <TopNav
         activeTab={activeTab}
         onTabChange={setActiveTab}
         isConnectModalOpen={isConnectModalOpen}
         onConnectModalChange={setIsConnectModalOpen}
+        playerName={profile.username}
+        playerAvatar={activeAvatar.icon}
+        onOpenProfile={() => setIsEditProfileModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -175,6 +200,20 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
             </div>
           </section>
         )}
+
+        {/* TAB 4: COMBATE (JCJ / PVP / SALA DE ESPERA) */}
+        {activeTab === "arena" && (
+          <ArenaLobbyView
+            userCards={wallet.isConnected ? userDeck : []}
+            walletAddress={walletAddress}
+            isConnected={wallet.isConnected}
+            playerName={profile.username}
+            playerAvatar={activeAvatar.icon}
+            onGoToDecks={() => setActiveTab("decks")}
+            onOpenConnect={() => setIsConnectModalOpen(true)}
+            onBurnAndMint={burnAndMintInBattle}
+          />
+        )}
       </main>
 
       {/* Reveal Modal (After Forging) */}
@@ -197,6 +236,21 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
       <CardDetailsModal
         card={detailsCard}
         onClose={closeDetailsCard}
+      />
+
+      {/* Onboarding / Edit Profile Modal */}
+      <OnboardingProfileModal
+        isOpen={isOnboardingModalOpen || isEditProfileModalOpen}
+        initialProfile={profile}
+        onSave={(name, avatarId) => {
+          saveProfile(name, avatarId);
+          setIsEditProfileModalOpen(false);
+        }}
+        onClose={() => {
+          closeOnboardingModal();
+          setIsEditProfileModalOpen(false);
+        }}
+        isFirstTime={isOnboardingModalOpen}
       />
     </div>
   );

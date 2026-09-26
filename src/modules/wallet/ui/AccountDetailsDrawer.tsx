@@ -7,6 +7,9 @@ import { useWallet } from "../";
 interface AccountDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  playerName?: string;
+  playerAvatar?: string;
+  onOpenEditProfile?: () => void;
 }
 
 function abbreviate(address: string) {
@@ -19,7 +22,13 @@ function avatarHue(address: string) {
   return [...address].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 360;
 }
 
-export function AccountDetailsDrawer({ isOpen, onClose }: AccountDetailsDrawerProps) {
+export function AccountDetailsDrawer({
+  isOpen,
+  onClose,
+  playerName,
+  playerAvatar,
+  onOpenEditProfile,
+}: AccountDetailsDrawerProps) {
   const wallet = useWallet();
   const [copied, setCopied] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
@@ -59,6 +68,13 @@ export function AccountDetailsDrawer({ isOpen, onClose }: AccountDetailsDrawerPr
     onClose();
   };
 
+  const handleEditProfile = () => {
+    onClose();
+    if (onOpenEditProfile) {
+      onOpenEditProfile();
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -87,17 +103,17 @@ export function AccountDetailsDrawer({ isOpen, onClose }: AccountDetailsDrawerPr
             <div className="flex items-center justify-between pb-4 border-b border-zinc-800/80">
               <div className="flex items-center gap-3">
                 <div
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl shadow-md border border-white/20 text-white font-bold"
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl shadow-md border border-white/20 text-white font-bold text-2xl"
                   style={{
                     background: `linear-gradient(135deg, hsl(${avatarHue(activeAddress)}, 80%, 45%), hsl(${(avatarHue(activeAddress) + 60) % 360}, 80%, 30%))`,
                   }}
                 >
-                  ✦
+                  {playerAvatar || "✦"}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-white tracking-wide">
-                      Perfil de Jugador
+                    <h3 className="text-base font-extrabold text-white tracking-wide truncate max-w-[170px]">
+                      {playerName || "Perfil de Invocador"}
                     </h3>
                     <span className="rounded-full bg-emerald-950 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
                       Testnet
@@ -112,14 +128,27 @@ export function AccountDetailsDrawer({ isOpen, onClose }: AccountDetailsDrawerPr
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="h-8 w-8 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-                aria-label="Cerrar perfil"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2">
+                {onOpenEditProfile && (
+                  <button
+                    type="button"
+                    onClick={handleEditProfile}
+                    className="h-8 px-2.5 rounded-xl border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center gap-1 text-[11px] font-bold transition-colors cursor-pointer"
+                    title="Editar nombre y avatar"
+                  >
+                    <span>✏️</span>
+                    <span className="hidden sm:inline">Editar</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="h-8 w-8 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="Cerrar perfil"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {/* Address Row & Copy Action */}
