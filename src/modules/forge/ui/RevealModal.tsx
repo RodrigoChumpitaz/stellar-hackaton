@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { CardItem } from "@/modules/cards/ui/CardItem";
 import type { CardData } from "@/modules/cards/domain/types";
-import { SparklesIcon } from "@/shared/ui/icons/Elements";
 
 interface RevealModalProps {
   isOpen: boolean;
@@ -69,7 +68,7 @@ export function RevealModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.8, y: 30 }}
           transition={{ type: "spring", damping: 22, stiffness: 280 }}
-          className="relative flex flex-col items-center max-w-lg w-full rounded-3xl border border-cyan-500/40 bg-gradient-to-b from-[#14172E] via-[#0E1022] to-[#0A0C18] p-6 sm:p-8 shadow-[0_0_60px_rgba(0,229,255,0.25)] text-center z-10 select-none"
+          className="relative flex flex-col items-center max-w-md w-full rounded-3xl border border-cyan-500/40 bg-gradient-to-b from-[#14172E] via-[#0E1022] to-[#0A0C18] p-4 sm:p-6 shadow-[0_0_60px_rgba(0,229,255,0.25)] text-center z-10 select-none"
         >
           {/* Close X Button */}
           <button
@@ -80,35 +79,18 @@ export function RevealModal({
           </button>
 
           {/* Celebration Header */}
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/40 bg-cyan-950/60 px-3 py-1 text-xs font-bold text-cyan-300 mb-3 shadow-[0_0_15px_rgba(0,229,255,0.3)]">
-            <SparklesIcon className="w-3.5 h-3.5 text-cyan-300" />
-            <span>SÍNTESIS GENERATIVA COMPLETADA</span>
-          </div>
-          <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
             ¡Nueva Runa Híbrida!
           </h3>
-          <p className="mt-1 text-xs text-zinc-400 max-w-sm">
-            Tus cartas originales han sido quemadas (Burn) y esta nueva criatura ha sido acuñada (Mint).
-          </p>
 
           {/* Big Card Display */}
-          <div className="my-6 flex justify-center transform transition-transform hover:scale-105 duration-300">
+          <div className="my-3 sm:my-4 flex justify-center transform transition-transform hover:scale-105 duration-300">
             <CardItem card={resultCard} size="lg" />
           </div>
 
-          {/* Provenance / Parents summary */}
-          {parentA && parentB && (
-            <div className="flex items-center justify-center gap-2 text-[11px] text-zinc-400 font-mono py-1 px-3 rounded-full bg-zinc-900/80 border border-zinc-800 mb-4">
-              <span className="text-zinc-500">Padres quemados:</span>
-              <span className="text-red-400 font-semibold">{parentA.name}</span>
-              <span>+</span>
-              <span className="text-cyan-400 font-semibold">{parentB.name}</span>
-            </div>
-          )}
-
           {/* Stellar Verification Badge */}
-          <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-3.5 py-1.5 rounded-xl mb-6">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+          <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400 mb-3.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
             <span>Acuñada en Stellar Soroban Testnet</span>
             {txHash && (
               <a
@@ -126,7 +108,7 @@ export function RevealModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 py-3.5 text-sm font-extrabold tracking-wide uppercase text-white shadow-[0_0_25px_rgba(0,229,255,0.4)] hover:brightness-110 active:scale-95 transition-all cursor-pointer ring-1 ring-cyan-400/60"
+            className="w-full rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 py-3 text-sm font-extrabold tracking-wide uppercase text-white shadow-[0_0_20px_rgba(0,229,255,0.35)] hover:brightness-110 active:scale-95 transition-all cursor-pointer ring-1 ring-cyan-400/60"
           >
             ✦ Equipar al Mazo &amp; Continuar
           </button>

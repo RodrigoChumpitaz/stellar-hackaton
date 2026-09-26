@@ -97,21 +97,29 @@ export function useForgeWorkbench({
   }, [isConnected, walletAddress]);
 
 
-  // Exclusive Drag & Drop slot assignment
+  // Exclusive Drag & Drop slot assignment + Direct Slot Swap (A ↔ B)
   const equipCardToSlot = useCallback(
     (card: Card, targetSlot: "A" | "B") => {
       if (isForging) return;
 
       if (targetSlot === "A") {
         if (slotB?.id === card.id) {
-          setSlotB(null);
+          // Card was in Slot B and dragged onto Slot A: SWAP!
+          const prevA = slotA;
+          setSlotA(card);
+          setSlotB(prevA);
+        } else {
+          setSlotA(card);
         }
-        setSlotA(card);
       } else if (targetSlot === "B") {
         if (slotA?.id === card.id) {
-          setSlotA(null);
+          // Card was in Slot A and dragged onto Slot B: SWAP!
+          const prevB = slotB;
+          setSlotB(card);
+          setSlotA(prevB);
+        } else {
+          setSlotB(card);
         }
-        setSlotB(card);
       }
     },
     [isForging, slotA, slotB]

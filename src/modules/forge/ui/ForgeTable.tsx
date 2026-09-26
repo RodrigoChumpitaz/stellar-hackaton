@@ -4,9 +4,8 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { CardSlot } from "./CardSlot";
 import type { CardData } from "@/modules/cards/domain/types";
-import { forgeElement, forgeRarity } from "../domain/forge-rules";
+import { forgeElement, calculateTierOutcome, rarityToTier } from "../domain/forge-rules";
 import { ELEMENT_THEMES, ElementIcon } from "@/modules/cards/ui/CardItem";
-import { ZapIcon, SparklesIcon } from "@/shared/ui/icons/Elements";
 import { ForgeIgniteButton } from "./ForgeIgniteButton";
 
 const AetherCrystal = dynamic(
@@ -30,6 +29,9 @@ interface ForgeTableProps {
   isForging: boolean;
   forgeStepMessage?: string | null;
   onDragEndToSlot?: (card: CardData, targetSlot: "A" | "B") => void;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  className?: string;
 }
 
 export function ForgeTable({
@@ -41,6 +43,9 @@ export function ForgeTable({
   isForging,
   forgeStepMessage,
   onDragEndToSlot,
+  onDragStart,
+  onDragEnd,
+  className = "",
 }: ForgeTableProps) {
 
   const canForge = Boolean(cardA && cardB && cardA.id !== cardB.id && !isForging);
@@ -48,18 +53,23 @@ export function ForgeTable({
   // Crystal energy sync during long-press hold
   const [crystalEnergy, setCrystalEnergy] = useState(0);
 
-  // Compute preview of derived element and rarity
+  // Compute preview of derived element and alphanumeric Tier (30-tier system)
   const expectedElement =
     cardA && cardB ? forgeElement(cardA.element, cardB.element) : null;
-  const expectedRarity =
-    cardA && cardB ? forgeRarity(cardA.rarity, cardB.rarity) : null;
+  const expectedTier =
+    cardA && cardB
+      ? calculateTierOutcome(
+          cardA.tier || rarityToTier(cardA.rarity),
+          cardB.tier || rarityToTier(cardB.rarity)
+        ).resultingTier
+      : null;
 
   const expectedTheme = expectedElement
     ? ELEMENT_THEMES[expectedElement] || ELEMENT_THEMES.AETHER
     : null;
 
   return (
-    <section className="relative z-20 w-full rounded-3xl border border-zinc-800/80 bg-gradient-to-b from-[#111428]/90 via-[#0E1022]/90 to-[#0A0C18]/95 p-4 sm:p-8 md:p-10 shadow-2xl backdrop-blur-xl select-none">
+    <section className={`relative ${className || "z-20"} w-full rounded-3xl border border-zinc-800/80 bg-gradient-to-b from-[#111428]/90 via-[#0E1022]/90 to-[#0A0C18]/95 p-4 sm:p-8 md:p-10 shadow-2xl backdrop-blur-xl select-none transition-all duration-200`}>
       {/* Background container with overflow-hidden for ambient effects */}
       <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
         {/* 3D Floor Perspective Holographic Altar */}
@@ -75,18 +85,13 @@ export function ForgeTable({
         </div>
       </div>
 
-      {/* Header */}
-      <div className="relative text-center mb-4 sm:mb-6 z-10">
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-950/40 px-3 py-1 text-xs font-semibold text-purple-300 mb-2 shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-          <ZapIcon className="w-3.5 h-3.5 text-purple-400" />
-          <span>Altar de Síntesis Atómica</span>
-        </div>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white">
+      {/* Header - Sleek, Game-focused & Zero Technical Jargon */}
+      <div className="relative text-center mb-6 sm:mb-8 z-10">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white">
           La Forja de Runas
         </h2>
-        <p className="mt-1 text-xs sm:text-sm text-zinc-400 max-w-lg mx-auto leading-relaxed">
-          Fusiona dos cartas comunes. Gemini 2.0 Flash balanceará los stats y
-          Soroban ejecutará la quema y acuñación atómica en Stellar Testnet.
+        <p className="mt-1.5 text-xs sm:text-sm text-zinc-400 max-w-sm sm:max-w-md mx-auto">
+          Combina dos runas para sintetizar una criatura híbrida superior.
         </p>
       </div>
 
@@ -99,25 +104,25 @@ export function ForgeTable({
           onRemove={onRemoveA}
           isForging={isForging}
           onDragEndToSlot={onDragEndToSlot}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
         />
 
         {/* Fusion Core */}
         <div className="flex flex-col items-center justify-center gap-3 my-2 md:my-0 w-full md:w-auto">
           {/* Expected Outcome Prediction */}
-          {expectedElement && expectedRarity && expectedTheme && (
-            <div className="flex flex-col items-center gap-1 animate-fade-in">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-400">
-                Sinergia Prevista
+          {expectedElement && expectedTier && expectedTheme ? (
+            <div className="flex items-center gap-2 rounded-full border border-zinc-700/80 bg-zinc-900/90 px-3.5 py-1 text-xs font-extrabold shadow-lg animate-fade-in">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 mr-0.5">
+                Resultado:
               </span>
-              <div
-                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-extrabold shadow-lg ${expectedTheme.badge} ${expectedTheme.glow}`}
-              >
-                <ElementIcon element={expectedElement} className="w-3.5 h-3.5" />
-                <span>{expectedElement}</span>
-                <span className="text-zinc-400">·</span>
-                <span>{expectedRarity}</span>
-              </div>
+              <ElementIcon element={expectedElement} className="w-3.5 h-3.5" />
+              <span className={expectedTheme.accent}>{expectedElement}</span>
+              <span className="text-zinc-500">·</span>
+              <span className="text-amber-300 font-mono">Rango {expectedTier}</span>
             </div>
+          ) : (
+            <div className="h-6" />
           )}
 
           {/* Central 3D Interactive Aether Crystal */}
@@ -134,18 +139,15 @@ export function ForgeTable({
             forgeStepMessage={forgeStepMessage}
             onIgnite={onStartForge}
             onProgressChange={setCrystalEnergy}
+            cardsCount={Number(Boolean(cardA)) + Number(Boolean(cardB))}
           />
 
-          {/* Micro Gas Info */}
-          <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-mono">
-            <span className="flex items-center gap-1">
-              <span className="text-emerald-400">●</span> Gas: &lt; 0.0001 XLM
-            </span>
-            <span>·</span>
-            <span className="flex items-center gap-1">
-              <SparklesIcon className="w-3 h-3 text-cyan-400" />
-              Atómico en Soroban
-            </span>
+          {/* Micro Gas Info - Sleek & Subtle */}
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/60 border border-zinc-800 text-[10px] text-zinc-400 font-mono">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span>Soroban Testnet</span>
+            <span className="text-zinc-600">·</span>
+            <span>&lt; 0.0001 XLM</span>
           </div>
         </div>
 
@@ -156,6 +158,8 @@ export function ForgeTable({
           onRemove={onRemoveB}
           isForging={isForging}
           onDragEndToSlot={onDragEndToSlot}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
         />
 
       </div>

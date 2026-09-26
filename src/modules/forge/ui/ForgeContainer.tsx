@@ -59,6 +59,8 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
     isConnected: wallet.isConnected,
   });
 
+  const [activeDragSection, setActiveDragSection] = useState<"forge" | "drawer" | null>(null);
+
   return (
     <div className="min-h-screen w-full bg-[#0A0C18] flex flex-col">
       {/* Top Navigation */}
@@ -90,6 +92,9 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
                 isForging={isForging}
                 forgeStepMessage={forgeMessage}
                 onDragEndToSlot={equipCardToSlot}
+                onDragStart={() => setActiveDragSection("forge")}
+                onDragEnd={() => setActiveDragSection(null)}
+                className={activeDragSection === "forge" ? "z-50" : activeDragSection === "drawer" ? "z-10" : "z-20"}
               />
 
 
@@ -100,6 +105,9 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
                 onQuickTap={(card) => setInspectingCard(card)}
                 onLongPress={(card) => setDetailsCard(card)}
                 onDragEndToSlot={equipCardToSlot}
+                onDragStart={() => setActiveDragSection("drawer")}
+                onDragEnd={() => setActiveDragSection(null)}
+                className={activeDragSection === "drawer" ? "z-50" : activeDragSection === "forge" ? "z-10" : "z-20"}
                 isConnected={wallet.isConnected}
                 onClaimStarter={claimStarterPack}
                 isClaimingStarter={isClaimingStarter}
@@ -114,11 +122,16 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
         {/* TAB 2: MIS MAZOS (CONFIGURAR MAZO Y CATÁLOGO DE RUNAS) */}
         {activeTab === "decks" && (
           <DeckBuilderView
-            userCards={userDeck.length > 0 ? userDeck : initialCatalog}
+            userCards={wallet.isConnected ? userDeck : []}
             walletAddress={wallet.publicKey || wallet.smartAccountId}
             isConnected={wallet.isConnected}
             onQuickTapCard={(card) => setInspectingCard(card)}
             onLongPressCard={(card) => setDetailsCard(card)}
+            hasClaimedStarter={hasClaimedStarter}
+            onClaimStarter={claimStarterPack}
+            isClaimingStarter={isClaimingStarter}
+            claimToast={claimToast}
+            onGoToForge={() => setActiveTab("forge")}
           />
         )}
 

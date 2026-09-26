@@ -3,9 +3,16 @@
  * Bounded Context: Cards (Domain Layer)
  */
 
-import type { CardElement, CardRarity, BaseElement, HybridElement } from "./constants";
+import type {
+  CardElement,
+  CardRarity,
+  CardTier,
+  BaseElement,
+  HybridElement,
+  CosmicElement,
+} from "./constants";
 
-export type { CardElement, CardRarity, BaseElement, HybridElement };
+export type { CardElement, CardRarity, CardTier, BaseElement, HybridElement, CosmicElement };
 
 export interface CardPassiveSkill {
   name: string;
@@ -24,6 +31,7 @@ export interface Card {
   name: string;
   element: CardElement;
   rarity: CardRarity;
+  tier?: CardTier;
   atk: number;
   def: number;
   speed?: number;
@@ -35,6 +43,7 @@ export interface Card {
   passive_skill?: string | null;
   passive?: CardPassiveSkill | null;
   active?: CardActiveSkill | null;
+  skills?: string[];
   token_id?: number | bigint | null;
 }
 

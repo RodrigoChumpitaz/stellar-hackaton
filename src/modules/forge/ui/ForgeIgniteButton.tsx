@@ -9,6 +9,7 @@ interface ForgeIgniteButtonProps {
   forgeStepMessage?: string | null;
   onIgnite: () => void;
   onProgressChange?: (progress: number) => void;
+  cardsCount?: number;
 }
 
 export function ForgeIgniteButton({
@@ -17,6 +18,7 @@ export function ForgeIgniteButton({
   forgeStepMessage,
   onIgnite,
   onProgressChange,
+  cardsCount = 0,
 }: ForgeIgniteButtonProps) {
   const [holdProgress, setHoldProgress] = useState(0);
   const holdIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -64,7 +66,7 @@ export function ForgeIgniteButton({
       <button
         type="button"
         aria-busy={isForging}
-        aria-label={canForge ? "Ignitar Forja Elemental" : isForging ? "Forjando carta elemental" : "Forja inactiva, selecciona 2 cartas"}
+        aria-label={canForge ? "Forjar Runa Híbrida" : isForging ? "Forjando carta elemental" : "Forja inactiva, selecciona 2 cartas"}
         onClick={() => {
           if (canForge && holdProgress === 0) {
             onIgnite();
@@ -96,7 +98,7 @@ export function ForgeIgniteButton({
         {isForging ? (
           <>
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
-            <span>{forgeStepMessage || "Canalizando Éter..."}</span>
+            <span>{forgeStepMessage || "Canalizando..."}</span>
           </>
         ) : canForge ? (
           <>
@@ -104,11 +106,11 @@ export function ForgeIgniteButton({
             <span>
               {holdProgress > 0
                 ? `Canalizando ${holdProgress}%`
-                : "IGNITAR FORJA (Burn & Mint)"}
+                : "✦ Forjar Runa Híbrida"}
             </span>
           </>
         ) : (
-          <span>Selecciona 2 Runas</span>
+          <span>{cardsCount === 1 ? "Selecciona 1 runa más" : "Selecciona 2 runas"}</span>
         )}
       </button>
 
