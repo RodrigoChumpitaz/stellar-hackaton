@@ -3,17 +3,20 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { Card } from "@/modules/cards/domain/types";
 import { synthesizeHybridCard } from "../../application/forge-service";
+import { executeForgePipeline } from "../../application/forge-pipeline";
 
 interface UseForgeWorkbenchProps {
   initialCatalog: Card[];
   walletAddress?: string | null;
   isConnected: boolean;
+  signTransaction?: (xdr: string) => Promise<string>;
 }
 
 export function useForgeWorkbench({
   initialCatalog,
   walletAddress,
   isConnected,
+  signTransaction,
 }: UseForgeWorkbenchProps) {
   // Navigation & Tabs
   const [activeTab, setActiveTab] = useState<"forge" | "decks" | "rules">("forge");
@@ -32,6 +35,8 @@ export function useForgeWorkbench({
   // Forge Lifecycle
   const [isForging, setIsForging] = useState(false);
   const [forgeMessage, setForgeMessage] = useState("");
+  const [forgeError, setForgeError] = useState<string | null>(null);
+  const [lastTxHash, setLastTxHash] = useState<string>("");
   const [forgedResult, setForgedResult] = useState<Card | null>(null);
   const [lastBurnedA, setLastBurnedA] = useState<Card | null>(null);
   const [lastBurnedB, setLastBurnedB] = useState<Card | null>(null);
@@ -147,25 +152,41 @@ export function useForgeWorkbench({
     if (!slotA || !slotB || slotA.id === slotB.id || isForging) return;
 
     setIsForging(true);
+    setForgeError(null);
     const parentA = slotA;
     const parentB = slotB;
 
     try {
-      setForgeMessage("1/3 · Gemini 2.0 Flash balanceando atributos...");
-      await new Promise((r) => setTimeout(r, 900));
+      let newCard: Card;
+      let txHash = "";
 
-      setForgeMessage("2/3 · Simulando huella atómica en Soroban RPC...");
-      await new Promise((r) => setTimeout(r, 900));
+      if (walletAddress && signTransaction) {
+        const result = await executeForgePipeline({
+          playerAddress: walletAddress,
+          cardA: parentA,
+          cardB: parentB,
+          signer: { signTransaction },
+          onProgress: (msg) => setForgeMessage(msg),
+        });
+        newCard = result.newCard;
+        txHash = result.txHash;
+      } else {
+        setForgeMessage("1/3 · Gemini 2.0 Flash balanceando atributos...");
+        await new Promise((r) => setTimeout(r, 600));
 
-      setForgeMessage("3/3 · Ejecutando Burn & Mint en Testnet...");
-      await new Promise((r) => setTimeout(r, 1000));
+        setForgeMessage("2/3 · Simulando huella atómica en Soroban RPC...");
+        await new Promise((r) => setTimeout(r, 600));
 
-      // Delegated to Application Service
-      const newCard = synthesizeHybridCard(parentA, parentB);
+        setForgeMessage("3/3 · Ejecutando Burn & Mint en Testnet...");
+        await new Promise((r) => setTimeout(r, 600));
+
+        newCard = synthesizeHybridCard(parentA, parentB);
+      }
 
       setForgedResult(newCard);
       setLastBurnedA(parentA);
       setLastBurnedB(parentB);
+      setLastTxHash(txHash);
 
       // Atomic local state burn & mint
       setUserDeck((prev) => [
@@ -176,11 +197,15 @@ export function useForgeWorkbench({
       setRevealModalOpen(true);
       setSlotA(null);
       setSlotB(null);
+    } catch (err) {
+      console.error("Error en pipeline de forja:", err);
+      const userMsg = err instanceof Error ? err.message : String(err);
+      setForgeError(userMsg);
     } finally {
       setIsForging(false);
       setForgeMessage("");
     }
-  }, [slotA, slotB, isForging]);
+  }, [slotA, slotB, isForging, walletAddress, signTransaction]);
 
   const closeRevealModal = useCallback(() => {
     setRevealModalOpen(false);
@@ -258,6 +283,9 @@ export function useForgeWorkbench({
     autoEquipCard,
     removeCardFromSlot,
     startForge,
+    lastTxHash,
+    forgeError,
+    clearForgeError: () => setForgeError(null),
     closeRevealModal,
     setInspectingCard,
     closeInspectingCard,

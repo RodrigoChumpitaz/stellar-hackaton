@@ -53,10 +53,14 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
     claimStarterPack,
     isClaimingStarter,
     claimToast,
+    lastTxHash,
+    forgeError,
+    clearForgeError,
   } = useForgeWorkbench({
     initialCatalog,
     walletAddress: wallet.publicKey || wallet.smartAccountId,
     isConnected: wallet.isConnected,
+    signTransaction: wallet.signTransaction,
   });
 
   return (
@@ -81,6 +85,22 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
             />
           ) : (
             <>
+              {forgeError && (
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-xs sm:text-sm text-red-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-400 font-bold">⚠️ Error de Forja:</span>
+                    <span>{forgeError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearForgeError}
+                    className="rounded-lg bg-red-900/60 hover:bg-red-800 px-2 py-1 text-xs text-white cursor-pointer"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              )}
+
               <ForgeTable
                 cardA={slotA}
                 cardB={slotB}
@@ -170,7 +190,7 @@ export function ForgeContainer({ initialCatalog }: ForgeContainerProps) {
         resultCard={forgedResult}
         parentA={lastBurnedA}
         parentB={lastBurnedB}
-        txHash="9a4f8e... (Soroban Testnet)"
+        txHash={lastTxHash || null}
         onClose={closeRevealModal}
       />
 
