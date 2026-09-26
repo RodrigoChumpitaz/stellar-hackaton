@@ -22,6 +22,10 @@ next-env.d.ts
 # production
 /build
 /dist
+target/
+**/target/
+test_snapshots/
+**/test_snapshots/
 
 # misc
 .DS_Store
